@@ -1,0 +1,232 @@
+# Extensions & Plugins
+
+FluxScript provides multiple extension mechanisms: a VS Code extension for rich editor integration, a C++ plugin system for native high-performance computation, and a package manager for distribution.
+
+---
+
+## VS Code Extension
+
+The `flux-lsp-vscode` extension brings full FluxScript support to Visual Studio Code through Language Server Protocol (LSP) integration.
+
+### Features
+
+* **Syntax Highlighting:** Full grammar support for FluxScript syntax, including physical units, keywords, operators, and circuit DSL constructs.
+* **Language Configuration:** Bracket matching, auto-closing pairs, comment toggling (`//` and `/* */`), and smart indent rules.
+* **Autocompletion:** Context-aware completions for types, functions, modules, units, and user-defined symbols.
+* **Navigation:** "Go to Definition" and "Find References" across files and packages.
+* **Hover Documentation:** Inline documentation detailing functions, types, and physical unit conversions on hover.
+* **Real-Time Diagnostics:** Live checking for type errors, syntax errors, and physical unit mismatch warnings.
+* **Code Actions:** Quick fixes for common issues, auto-import suggestions, and refactoring commands.
+* **Signature Help:** Function signature assistance while writing parameter lists.
+* **Symbol Navigation:** Outline views for document symbols and workspace-wide symbol searches.
+* **Rename Refactoring:** Workspace-wide symbol renaming with automatic reference updates.
+
+### Installation
+
+```bash
+# From VS Code Marketplace
+code --install-extension flux-lsp-vscode
+
+# Or install from VSIX binary
+code --install-extension flux-lsp-vscode-0.x.0.vsix
+```
+
+### Language Configuration
+
+The extension configuration is defined in `language-configuration.json` using standard brace-based indentation rules:
+
+```json
+{
+  "comments": {
+    "lineComment": "//",
+    "blockComment": ["/*", "*/"]
+  },
+  "brackets": [
+    ["(", ")"],
+    ["[", "]"],
+    ["{", "}"]
+  ],
+  "autoClosingPairs": [
+    { "open": "(", "close": ")" },
+    { "open": "[", "close": "]" },
+    { "open": "{", "close": "}" },
+    { "open": "\"", "close": "\"", "notIn": ["string"] },
+    { "open": "'", "close": "'", "notIn": ["string"] }
+  ],
+  "surroundingPairs": [
+    ["(", ")"],
+    ["[", "]"],
+    ["{", "}"],
+    ["\"", "\""],
+    ["'", "'"]
+  ],
+  "indentationRules": {
+    "increaseIndentPattern": "(\\{|\\b(else|elif|do|repeat)\\b)[^\\}]*$",
+    "decreaseIndentPattern": "^\\s*(\\}|else|elif|until\\b)"
+  }
+}
+```
+
+---
+
+## C++ Plugin System
+
+Native C++ plugins extend FluxScript with high-performance functions. Plugins are compiled as shared libraries and loaded at runtime through the plugin manager.
+
+### Plugin Interface
+
+Every native plugin must implement four standard C entry points:
+
+```cpp
+#include <flux/plugin.h>
+
+// Required: Return the plugin name
+const char* plugin_name() {
+    return "my_plugin";
+}
+
+// Required: Return the plugin version
+const char* plugin_version() {
+    return "1.0.0";
+}
+
+// Required: Initialize the plugin (called once on load)
+int plugin_init() {
+    // Allocate resources, register types, etc.
+    return 0;  // 0 = success, non-zero = failure
+}
+
+// Required: Register functions with the FluxScript runtime
+void plugin_register_functions(FluxRuntime* runtime) {
+    flux_register_function(runtime, "fast_sin", fast_sin_impl);
+    flux_register_function(runtime, "fast_cos", fast_cos_impl);
+    flux_register_function(runtime, "smoothstep", smoothstep_impl);
+    flux_register_function(runtime, "bessel_j0", bessel_j0_impl);
+}
+```
+
+### Example Plugin: Fast Math
+
+```cpp
+#include <flux/plugin.h>
+#include <cmath>
+#include <cstring>
+
+// Fast sine approximation (Polynomial minimax)
+double fast_sin_impl(double x) {
+    // Wrap to [-pi, pi]
+    x = fmod(x, 2.0 * M_PI);
+    if (x > M_PI) x -= 2.0 * M_PI;
+    if (x < -M_PI) x += 2.0 * M_PI;
+
+    // Degree-5 minimax polynomial
+    double x2 = x * x;
+    return x * (1.0 - x2 * (1.0/6.0 - x2 * (1.0/120.0)));
+}
+
+// Fast inverse square root (Quake III algorithm)
+double fast_inv_sqrt_impl(double x) {
+    double xhalf = 0.5 * x;
+    int64_t i;
+    std::memcpy(&i, &x, sizeof(double));
+    i = 0x5fe6eb50c7b537a9 - (i >> 1);
+    std::memcpy(&x, &i, sizeof(double));
+    x = x * (1.5 - xhalf * x * x);
+    return x;
+}
+
+// Smoothstep (Hermite interpolation)
+double smoothstep_impl(double edge0, double edge1, double x) {
+    double t = fmax(0.0, fmin(1.0, (x - edge0) / (edge1 - edge0)));
+    return t * t * (3.0 - 2.0 * t);
+}
+
+// Bessel function of the first kind, order 0
+double bessel_j0_impl(double x) {
+    if (std::abs(x) < 8.0) {
+        double y = x * x;
+        double r1 = 57568490574.0 + y * (-13362590354.0 + y * 651619640.7);
+        double r2 = y * (-7621095161.0 + y * (1069443688.0 + y * (-517645402.0)));
+        return (r1 + r2) / (72362614232.0 + y * (-7828804749.0 +
+            y * (2181905291.0 + y * (-2637456546.0 + y * 576565238.0))));
+    }
+    double z = 8.0 / std::abs(x);
+    double y = z * z;
+    double xx = std::abs(x) - M_PI / 4.0;
+    double p1 = 1.0 + y * (-0.1098628627e-2 + y * (0.2734510407e-4 + y * (-0.2073370639e-5)));
+    double p2 = -0.1562499995e-1 + y * (0.1430488765e-3 + y * (-0.6911147651e-6 + y * 0.7621095161e-6));
+    double q1 = 0.1098628627e-2 + y * (0.2734510407e-4 + y * (-0.2073370639e-5));
+    double q2 = -0.1562499995e-1 + y * (0.1430488765e-3 + y * (-0.6911147651e-6));
+    return std::sqrt(0.636619772 / std::abs(x)) * (std::cos(xx) * p1 - z * std::sin(xx) * q1);
+}
+
+const char* plugin_name() { return "fast_math"; }
+const char* plugin_version() { return "1.0.0"; }
+
+int plugin_init() { return 0; }
+
+void plugin_register_functions(FluxRuntime* runtime) {
+    flux_register_function(runtime, "fast_sin", fast_sin_impl);
+    flux_register_function(runtime, "fast_inv_sqrt", fast_inv_sqrt_impl);
+    flux_register_function(runtime, "smoothstep", smoothstep_impl);
+    flux_register_function(runtime, "bessel_j0", bessel_j0_impl);
+}
+```
+
+### Using Plugins in FluxScript
+
+```fluxscript
+// Load a plugin
+use plugin "fast_math"
+
+// Use registered functions
+result := fast_sin(PI / 4)
+inv := fast_inv_sqrt(2.0)
+s := smoothstep(0.0, 1.0, 0.5)
+j0 := bessel_j0(1.0)
+```
+
+### Building a Plugin
+
+```bash
+# Compile as shared library using the compiler's --shared flag
+fluxc plugin.flux --shared -o libfast_math.so
+
+# Or using standard C++ compilers directly
+g++ -shared -fPIC -o libfast_math.so plugin.cpp \
+    -I/usr/include/flux -lflux_runtime
+
+# Place the shared library in your packages search path
+flux-pkg install libfast_math.so
+```
+
+---
+
+## Package Manager Manifest (`flux.toml`)
+
+Packages are managed using manifests with local/remote repository declarations:
+
+```toml
+[package]
+name = "my-library"
+version = "1.0.0"
+description = "A useful FluxScript library"
+author = "Your Name"
+license = "MIT"
+
+[dependencies]
+dsp-tools = "2.1.0"
+signal-utils = ">=1.5.0"
+
+[dev-dependencies]
+test-framework = "0.9.0"
+
+[repository]
+type = "git"
+url = "https://github.com/user/my-library"
+
+[build]
+type = "fluxc"
+source = "src/main.flux"
+output = "lib/mylib.so"
+```

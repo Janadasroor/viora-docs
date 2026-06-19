@@ -1,0 +1,389 @@
+# Supported MCUs
+
+VioAVR supports over 340 MCU variants across the full range of AVR microcontroller families. Each variant has a complete device descriptor generated from official Microchip ATDF device pack files, ensuring accurate memory sizes, register layouts, peripheral configurations, and interrupt vector tables. The registry below highlights key supported variants from each series.
+
+---
+
+## ATmega
+
+### ATmega8 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATmega8 | 8 KB | 1 KB | 512 B | 16 MHz |
+| ATmega8A | 8 KB | 1 KB | 512 B | 16 MHz |
+| ATmega8515 | 8 KB | 512 B | 512 B | 16 MHz |
+| ATmega8535 | 8 KB | 512 B | 512 B | 16 MHz |
+| ATmega88 | 8 KB | 1 KB | 512 B | 20 MHz |
+| ATmega88PA | 8 KB | 1 KB | 512 B | 20 MHz |
+
+### ATmega16 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATmega16 | 16 KB | 1 KB | 512 B | 16 MHz |
+| ATmega16A | 16 KB | 1 KB | 512 B | 16 MHz |
+| ATmega162 | 16 KB | 1 KB | 512 B | 16 MHz |
+| ATmega164P | 16 KB | 1 KB | 512 B | 20 MHz |
+| ATmega164PA | 16 KB | 1 KB | 512 B | 20 MHz |
+| ATmega165A | 16 KB | 1 KB | 512 B | 20 MHz |
+| ATmega165P | 16 KB | 1 KB | 512 B | 20 MHz |
+| ATmega168 | 16 KB | 1 KB | 512 B | 20 MHz |
+| ATmega168P | 16 KB | 1 KB | 512 B | 20 MHz |
+| ATmega168PA | 16 KB | 1 KB | 512 B | 20 MHz |
+| ATmega168PB | 16 KB | 1 KB | 512 B | 20 MHz |
+| ATmega169P | 16 KB | 1 KB | 512 B | 20 MHz |
+| ATmega169PA | 16 KB | 1 KB | 512 B | 20 MHz |
+
+### ATmega32 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATmega32 | 32 KB | 2 KB | 1 KB | 16 MHz |
+| ATmega32A | 32 KB | 2 KB | 1 KB | 16 MHz |
+| ATmega324P | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega324PA | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega324PB | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega325 | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega325P | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega3250 | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega3250P | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega328 | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega328P | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega328PB | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega329 | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega329P | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega3290 | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega3290P | 32 KB | 2 KB | 1 KB | 20 MHz |
+
+### ATmega64 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATmega64 | 64 KB | 4 KB | 2 KB | 16 MHz |
+| ATmega64A | 64 KB | 4 KB | 2 KB | 16 MHz |
+| ATmega640 | 64 KB | 8 KB | 4 KB | 16 MHz |
+| ATmega644 | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega644P | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega644PA | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega645 | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega645P | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega6450 | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega6450P | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega649 | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega649P | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega6490 | 64 KB | 4 KB | 2 KB | 20 MHz |
+| ATmega6490P | 64 KB | 4 KB | 2 KB | 20 MHz |
+
+### ATmega128 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATmega128 | 128 KB | 4 KB | 4 KB | 16 MHz |
+| ATmega128A | 128 KB | 4 KB | 4 KB | 16 MHz |
+| ATmega1280 | 128 KB | 8 KB | 4 KB | 16 MHz |
+| ATmega1281 | 128 KB | 8 KB | 4 KB | 16 MHz |
+| ATmega1284P | 128 KB | 16 KB | 4 KB | 20 MHz |
+
+### ATmega256 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATmega2560 | 256 KB | 8 KB | 4 KB | 16 MHz |
+| ATmega2561 | 256 KB | 8 KB | 4 KB | 16 MHz |
+
+### ATmega48 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATmega48 | 4 KB | 512 B | 256 B | 20 MHz |
+| ATmega48A | 4 KB | 512 B | 256 B | 20 MHz |
+| ATmega48P | 4 KB | 512 B | 256 B | 20 MHz |
+| ATmega48PA | 4 KB | 512 B | 256 B | 20 MHz |
+| ATmega48PB | 4 KB | 512 B | 256 B | 20 MHz |
+
+### ATmega328 Variant Summary
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATmega328 | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega328P | 32 KB | 2 KB | 1 KB | 20 MHz |
+| ATmega328PB | 32 KB | 2 KB | 1 KB | 20 MHz |
+
+### ATmega4809
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATmega4809 | 48 KB | 6 KB | 256 B | 20 MHz |
+
+---
+
+## ATtiny
+
+### ATtiny4/5/9/10 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATtiny4 | 512 B | 32 B | None | 12 MHz |
+| ATtiny5 | 512 B | 32 B | None | 12 MHz |
+| ATtiny9 | 1 KB | 32 B | None | 12 MHz |
+| ATtiny10 | 1 KB | 32 B | None | 12 MHz |
+
+### ATtiny13 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATtiny13 | 1 KB | 64 B | 64 B | 20 MHz |
+| ATtiny13A | 1 KB | 64 B | 64 B | 20 MHz |
+
+### ATtiny25/45/85 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATtiny25 | 2 KB | 128 B | 128 B | 20 MHz |
+| ATtiny45 | 4 KB | 256 B | 256 B | 20 MHz |
+| ATtiny85 | 8 KB | 512 B | 512 B | 20 MHz |
+
+### ATtiny84 Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATtiny84 | 8 KB | 512 B | 512 B | 20 MHz |
+| ATtiny84A | 8 KB | 512 B | 512 B | 20 MHz |
+
+### ATtiny88
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATtiny88 | 8 KB | 512 B | 64 B | 20 MHz |
+
+### ATtiny167
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATtiny167 | 16 KB | 512 B | 512 B | 20 MHz |
+
+### ATtiny402/404/406
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATtiny402 | 4 KB | 256 B | 128 B | 20 MHz |
+| ATtiny404 | 4 KB | 256 B | 128 B | 20 MHz |
+| ATtiny406 | 4 KB | 256 B | 128 B | 20 MHz |
+
+### ATtiny804/806/807/814/816/817
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATtiny804 | 8 KB | 512 B | 128 B | 20 MHz |
+| ATtiny806 | 8 KB | 512 B | 128 B | 20 MHz |
+| ATtiny807 | 8 KB | 512 B | 128 B | 20 MHz |
+| ATtiny814 | 8 KB | 512 B | 128 B | 20 MHz |
+| ATtiny816 | 8 KB | 512 B | 128 B | 20 MHz |
+| ATtiny817 | 8 KB | 512 B | 128 B | 20 MHz |
+
+### ATtiny824/826/827/828
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATtiny824 | 8 KB | 1 KB | 128 B | 20 MHz |
+| ATtiny826 | 8 KB | 1 KB | 128 B | 20 MHz |
+| ATtiny827 | 8 KB | 1 KB | 128 B | 20 MHz |
+| ATtiny828 | 8 KB | 512 B | 256 B | 20 MHz |
+
+---
+
+## AT90 Series
+
+### AT90PWM
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| AT90PWM2B | 8 KB | 512 B | 512 B | 16 MHz |
+| AT90PWM3 | 8 KB | 512 B | 512 B | 16 MHz |
+| AT90PWM3B | 8 KB | 512 B | 512 B | 16 MHz |
+| AT90PWM81 | 8 KB | 256 B | 512 B | 16 MHz |
+| AT90PWM161 | 16 KB | 1 KB | 512 B | 16 MHz |
+
+### AT90USB
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| AT90USB646 | 64 KB | 4 KB | 2 KB | 16 MHz |
+| AT90USB647 | 64 KB | 4 KB | 2 KB | 16 MHz |
+| AT90USB1286 | 128 KB | 8 KB | 4 KB | 16 MHz |
+| AT90USB1287 | 128 KB | 8 KB | 4 KB | 16 MHz |
+| AT90USB162 | 16 KB | 512 B | 512 B | 16 MHz |
+| AT90USB82 | 8 KB | 512 B | 512 B | 16 MHz |
+
+### AT90CAN
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| AT90CAN32 | 32 KB | 2 KB | 1 KB | 16 MHz |
+| AT90CAN64 | 64 KB | 4 KB | 2 KB | 16 MHz |
+| AT90CAN128 | 128 KB | 4 KB | 4 KB | 16 MHz |
+
+---
+
+## AVR-Dx Series
+
+The AVR-Dx family is Microchip's modern 8-bit MCU line featuring the AVR CPU with improved peripherals, event system, and configurable custom logic.
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| AVR128DA28 | 128 KB | 16 KB | 512 B | 24 MHz |
+| AVR128DA32 | 128 KB | 16 KB | 512 B | 24 MHz |
+| AVR128DA48 | 128 KB | 16 KB | 512 B | 24 MHz |
+| AVR128DA64 | 128 KB | 16 KB | 512 B | 24 MHz |
+| AVR32DA28 | 32 KB | 4 KB | 512 B | 24 MHz |
+| AVR32DA32 | 32 KB | 4 KB | 512 B | 24 MHz |
+| AVR32DA48 | 32 KB | 4 KB | 512 B | 24 MHz |
+| AVR64DA28 | 64 KB | 8 KB | 512 B | 24 MHz |
+| AVR64DA32 | 64 KB | 8 KB | 512 B | 24 MHz |
+| AVR64DA48 | 64 KB | 8 KB | 512 B | 24 MHz |
+| AVR64DA64 | 64 KB | 8 KB | 512 B | 24 MHz |
+
+---
+
+## AVR-Ex Series
+
+The AVR-Ex family targets battery-powered and energy-harvesting applications with ultra-low-power features and advanced analog peripherals.
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| AVR16EB14 | 16 KB | 2 KB | 512 B | 24 MHz |
+| AVR16EB20 | 16 KB | 2 KB | 512 B | 24 MHz |
+| AVR16EB28 | 16 KB | 2 KB | 512 B | 24 MHz |
+| AVR16EB32 | 16 KB | 2 KB | 512 B | 24 MHz |
+| AVR32EB14 | 32 KB | 3 KB | 512 B | 24 MHz |
+| AVR32EB20 | 32 KB | 3 KB | 512 B | 24 MHz |
+| AVR32EB28 | 32 KB | 3 KB | 512 B | 24 MHz |
+| AVR32EB32 | 32 KB | 3 KB | 512 B | 24 MHz |
+
+---
+
+## AVR-LA Series
+
+The AVR-LA family provides enhanced analog and communication features for industrial and automotive applications.
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| AVR16LA14 | 16 KB | 2 KB | 512 B | 24 MHz |
+| AVR16LA20 | 16 KB | 2 KB | 512 B | 24 MHz |
+| AVR16LA28 | 16 KB | 2 KB | 512 B | 24 MHz |
+| AVR16LA32 | 16 KB | 2 KB | 512 B | 24 MHz |
+| AVR32LA14 | 32 KB | 2 KB | 512 B | 24 MHz |
+| AVR32LA20 | 32 KB | 2 KB | 512 B | 24 MHz |
+| AVR32LA28 | 32 KB | 2 KB | 512 B | 24 MHz |
+| AVR32LA32 | 32 KB | 2 KB | 512 B | 24 MHz |
+
+---
+
+## AVR-Sx Series
+
+The AVR-Sx family targets secure applications with hardware security modules and cryptography acceleration.
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| AVR128DA28S | 128 KB | 16 KB | 512 B | 24 MHz |
+| AVR128DA32S | 128 KB | 16 KB | 512 B | 24 MHz |
+| AVR64DA28S | 64 KB | 8 KB | 512 B | 24 MHz |
+| AVR64DA32S | 64 KB | 8 KB | 512 B | 24 MHz |
+| AVR32DA28S | 32 KB | 4 KB | 512 B | 24 MHz |
+| AVR32DA32S | 32 KB | 4 KB | 512 B | 24 MHz |
+
+---
+
+## XMEGA Series
+
+The XMEGA family extends the AVR architecture with 16-bit registers, DMA, event system, and enhanced analog peripherals.
+
+### XMEGA A Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATxmega64A1 | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega64A1U | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega64A3 | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega64A3U | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega64A4U | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega128A1 | 128 KB | 8 KB | 2 KB | 32 MHz |
+| ATxmega128A1U | 128 KB | 8 KB | 2 KB | 32 MHz |
+| ATxmega128A3 | 128 KB | 8 KB | 2 KB | 32 MHz |
+| ATxmega128A3U | 128 KB | 8 KB | 2 KB | 32 MHz |
+| ATxmega128A4U | 128 KB | 8 KB | 2 KB | 32 MHz |
+| ATxmega192A3 | 192 KB | 16 KB | 2 KB | 32 MHz |
+| ATxmega192A3U | 192 KB | 16 KB | 2 KB | 32 MHz |
+| ATxmega256A3 | 256 KB | 16 KB | 4 KB | 32 MHz |
+| ATxmega256A3B | 256 KB | 16 KB | 4 KB | 32 MHz |
+| ATxmega256A3BU | 256 KB | 16 KB | 4 KB | 32 MHz |
+| ATxmega256A3U | 256 KB | 16 KB | 4 KB | 32 MHz |
+
+### XMEGA AU Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATxmega64A1U | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega64A3U | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega64A4U | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega128A1U | 128 KB | 8 KB | 2 KB | 32 MHz |
+| ATxmega128A3U | 128 KB | 8 KB | 2 KB | 32 MHz |
+| ATxmega128A4U | 128 KB | 8 KB | 2 KB | 32 MHz |
+| ATxmega192A3U | 192 KB | 16 KB | 2 KB | 32 MHz |
+| ATxmega256A3U | 256 KB | 16 KB | 4 KB | 32 MHz |
+
+### XMEGA B Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATxmega64B1 | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega64B3 | 64 KB | 4 KB | 2 KB | 32 MHz |
+| ATxmega128B1 | 128 KB | 8 KB | 2 KB | 32 MHz |
+| ATxmega128B3 | 128 KB | 8 KB | 2 KB | 32 MHz |
+
+### XMEGA C Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATxmega32C4 | 32 KB | 4 KB | 1 KB | 32 MHz |
+| ATxmega384C3 | 384 KB | 32 KB | 4 KB | 32 MHz |
+
+### XMEGA D Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATxmega16D4 | 16 KB | 2 KB | 1 KB | 32 MHz |
+| ATxmega32D4 | 32 KB | 4 KB | 1 KB | 32 MHz |
+| ATxmega64D4 | 64 KB | 4 KB | 2 KB | 32 MHz |
+
+### XMEGA E Series
+
+| Variant | Flash | SRAM | EEPROM | Clock |
+| :--- | :--- | :--- | :--- | :--- |
+| ATxmega8E5 | 8 KB | 1 KB | 512 B | 32 MHz |
+| ATxmega16E5 | 16 KB | 2 KB | 512 B | 32 MHz |
+| ATxmega32E5 | 32 KB | 4 KB | 1 KB | 32 MHz |
+
+---
+
+## Adding New MCU Variants
+
+To add support for a new MCU variant:
+
+1. Obtain the ATDF file from Microchip's Device Family Pack or the Atmel Packs repository.
+2. Run `gen_device_descriptor.py` to generate the C++ device descriptor from the ATDF.
+3. Add the generated descriptor to the device registry in the VioAVR source tree.
+4. Update the CMake build system to include the new descriptor in compilation.
+5. Test the new variant with `dump_device_descriptor` and run a simple blink firmware to verify basic operation.
+
+```bash
+# Example: Adding ATmega328PB support
+gen_device_descriptor.py ATmega328PB.atdf --output-dir src/devices/atmega328pb
+
+# Verify the generated descriptor
+dump_device_descriptor atmega328pb --all
+
+# Test with a simple firmware
+vioavr-cli --mcu atmega328pb --flash blink.hex --max-cycles 1000000
+```

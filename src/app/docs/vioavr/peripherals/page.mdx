@@ -1,0 +1,424 @@
+# Peripherals
+
+VioAVR models the complete peripheral set of all supported AVR microcontrollers. Each peripheral is implemented as a self-contained C++20 module with register read/write handlers, interrupt generation, and timer/counter synchronization. The peripheral set spans classic ATmega/ATtiny devices, modern AVR-Dx/AVR-Ex families, and the XMEGA architecture.
+
+---
+
+## GPIO Ports
+
+General Purpose I/O is the most fundamental peripheral. VioAVR models PORTA through PORTF with register-level accuracy.
+
+### Registers
+
+| Register | Address | Description |
+| :--- | :--- | :--- |
+| **DDxn** | DDRx | **Data Direction:** Configures the pin as input (0) or output (1). |
+| **PORTxn** | PORTx | **Output Latch:** Drives the pin state when DDxn = 1, and enables the internal pull-up when DDxn = 0. |
+| **PINxn** | PINx | **Pin State:** Reads the actual logic level of the pad. Writing a logic 1 to a bit in this register toggles the corresponding PORTxn latch. |
+
+When `PINx` is read, it returns the actual logic level on the physical pin, regardless of whether the pin is configured as input or output. Writing a logic 1 to a `PINx` bit toggles the corresponding `PORTx` output latch (implemented as a read-modify-write toggle operation in the emulation core). This matches the standard AVR pin toggle mechanism.
+
+Internal pull-up resistors are activated when `DDxn = 0` and `PORTxn = 1`. VioAVR models the pull-up resistance (typically 20–50 kΩ depending on the target device) using an equivalent resistance parameter during co-simulation mode.
+
+Interrupt-driven pin changes are supported through the PCINT (Pin Change Interrupt) system. Each port has a corresponding `PCMSK` register that selects which pins generate interrupts. A pin change interrupt is triggered whenever any enabled pin transitions, regardless of direction.
+
+---
+
+## Timers
+
+Timer/Counters are among the most complex peripherals in AVR microcontrollers. VioAVR models the full range of timer architectures across all supported device families.
+
+### 8-bit Timers (Timer0, Timer2)
+
+The classic 8-bit asynchronous timer/counter with:
+
+* **Counter & Prescaler:** 8-bit counter supporting prescaler options of /1, /8, /64, /256, /1024, or external clocking via T0/T1 pins.
+* **Compare Match Output:** Support for OC0A and OC0B pins with non-inverting and inverting PWM modes.
+* **Waveform Generation:** Fast PWM and Phase Correct PWM modes.
+* **Interrupts:** Output compare interrupts (`OCIE0A`, `OCIE0B`) and overflow interrupt (`TOIE0`).
+* **Asynchronous Operation:** Timer2 includes asynchronous operation driven by a separate 32.768 kHz crystal oscillator for real-time clock functionality.
+
+### 10-bit Timer
+
+Found in ATtiny10/20/40 devices, this is an extended 8-bit timer with a 10-bit capture/compare unit and enhanced waveform generation modes, including a split mode to run as two independent 8-bit timers.
+
+### 16-bit Timer (Timer1)
+
+The classic 16-bit timer/counter supporting:
+
+* **16-bit Counter:** Wide dynamic range with prescaling options matched to the 8-bit timers.
+* **Input Capture:** Edge detection on the ICP1 pin with a software-configurable noise canceler filter.
+* **Output Compare:** Independent OC1A, OC1B, and OC1C channels with individual mode control.
+* **PWM Modes:** Phase and Frequency Correct PWM, Phase Correct PWM, and Fast PWM.
+* **Dead Time Insertion:** Programmable dead-time generator for half-bridge and full-bridge motor control.
+
+### TCA — 16-bit Timer/Counter Type A
+
+Used in AVR-Dx, AVR-Ex, and AVR8X devices. A versatile 16-bit timer with up to six output compare channels:
+
+* **PWM Modes:** Single-slope and double-slope PWM operation.
+* **Split Mode:** Can be split into two independent 8-bit timers using `SPLITSEL` with shared prescaling.
+* **Dead-Time Insertion:** Configurable high-side and low-side delays.
+* **Output Matrix:** Configurable waveform outputs on WO0–WO5.
+* **Event System Integration:** Event inputs for count enable and restart.
+
+### TCB — 16-bit Timer/Counter Type B
+
+A simplified 16-bit timer for general timing, capture, and PWM:
+
+* **Single Compare Channel:** Single capture/compare register (`CCMP`).
+* **Capture/Compare Modes:** Frequency capture, timeout, and 8-bit PWM mode.
+* **Event System:** Event counting and pulse-width measurement.
+
+### TCD — Timer/Counter Type D
+
+Dedicated timer for advanced motor control and power applications:
+
+* **12-bit Counter:** Equipped with dead-time and non-overlap generators.
+* **Fault Input:** Support for a hardware break/emergency shutdown mechanism.
+* **Complementary Outputs:** Paired outputs for H-bridge drivers.
+
+### TCE — Timer/Counter Type E
+
+Found in AVR-Ex devices:
+
+* **Fractional Frequency:** 16-bit counter with dithering to generate high-resolution fractional frequencies.
+* **Multi-Channel Waveform:** Multiple compare channels with separate waveform generation.
+* **Input Capture:** Configurable edge select and input filtering.
+
+### TC — XMEGA Timer/Counter
+
+XMEGA-specific timer architecture:
+
+* **Event System Integration:** Zero-CPU hardware synchronization.
+* **Channels A-D:** Four independent capture/compare channels.
+* **DMA Integration:** Trigger DMA transfers directly on compare match or capture events.
+* **Low-Power Modes:** Asynchronous operation with low-power clock sources.
+
+---
+
+## UART / USART
+
+### Classic UART
+
+Found in smaller ATmega/ATtiny devices:
+
+* **Operation:** Asynchronous, full-duplex operation.
+* **Baud Rate:** Configured via the 16-bit `UBRR` register (or 8-bit on ATtiny).
+* **Frame Formats:** 5 to 9 data bits, 1 or 2 stop bits, and optional parity (even, odd, or disabled).
+* **Double-Speed Mode:** `U2X` bit doubles transmission speed and reduces baud rate error.
+* **Interrupts:** RX Complete (`RXCIE`), TX Complete (`TXCIE`), and Data Register Empty (`UDRIE`).
+* **Status Flags:** Framing Error (`FE`), Data Overrun (`DOR`), and Parity Error (`PE`).
+
+### USART
+
+Enhanced serial interface adding synchronous mode:
+
+* **Multi-Mode:** Synchronous and asynchronous operation.
+* **Master Sync:** Outputs a clock on the XCK pin.
+* **Multi-Processor Mode:** Address-based filtering (`MPCM`) for multi-drop networks.
+* **Modern Baud Rate:** Fractional prescalers on modern device families.
+
+### AVR8X USART
+
+Modern USART with extended capabilities:
+
+* **Automatic Baud Detection:** Auto-baud hardware for LIN compliance.
+* **Smart Card Support:** ISO 7816 compliance.
+* **Infrared:** IrDA modulation/demodulation.
+
+### EUSART
+
+Extended USART found in AVR-Ex and AVR-Lx devices:
+
+* **Low Power:** Low-power asynchronous mode with fractional baud rates.
+* **LIN Support:** Dedicated hardware for LIN protocol synchronization.
+* **Wake-Up:** Wake from sleep on serial activity via the `WAKE` pin.
+* **Noise Mitigation:** Data scavenging algorithms for robust reception.
+
+### LIN
+
+Dedicated Local Interconnect Network interface:
+
+* **Sync Detection:** Automatic baud rate calibration using the LIN sync field.
+* **Break Signal:** Hardware-supported break generation and detection.
+* **Checksum:** Enhanced checksum calculation in hardware.
+* **Self-Test:** Loopback mode for diagnostics.
+
+---
+
+## SPI
+
+### Classic SPI
+
+Serial Peripheral Interface in master/slave configuration:
+
+* **Signals:** MOSI, MISO, SCK, and active-low SS.
+* **Modes:** Master or slave configuration (via `MSTR` bit).
+* **SPI Modes:** Modes 0–3 configured via clock polarity (`CPOL`) and phase (`CPHA`).
+* **Clock Rates:** Configurable divider options (`fOSC` divided by 4, 16, 64, or 128) and double-speed mode (`SPI2X`).
+* **Format:** MSB-first or LSB-first data order (`DORD`).
+* **Interrupts:** `SPIF` flag triggers an interrupt upon transfer completion.
+
+### AVR8X SPI
+
+Enhanced SPI interface:
+
+* **Buffer Mode:** Configurable buffer mode for continuous back-to-back transfers.
+* **Hardware SS:** Automatic SS pin management.
+* **FIFO:** Increased FIFO depth to reduce CPU interrupt overhead.
+
+---
+
+## TWI / I2C
+
+### Classic TWI
+
+Two-Wire Interface compatible with I²C:
+
+* **Addressing:** 7-bit and 10-bit slave addressing.
+* **Modes:** Master Transmitter/Receiver and Slave Transmitter/Receiver modes.
+* **Clocking:** Configurable SCL frequency with `TWBR` prescaler.
+* **Arbitration:** Multi-master arbitration, clock stretching, and acknowledge detection.
+* **Broadcast:** General call recognition.
+* **Wake-Up:** Address match interrupt triggers wake from sleep.
+
+### AVR8X TWI
+
+Modern I²C implementation:
+
+* **High Speed:** Support for High-Speed mode (up to 3.4 MHz).
+* **Address Masking:** Dedicated address matching with programmable masking registers.
+* **Smart Mode:** Automatic hardware acknowledgment.
+* **Timeout Detection:** Bus-freeze recovery using automated timeout detection.
+
+### USI — Universal Serial Interface
+
+Found in ATtiny devices to provide lightweight serial capabilities:
+
+* **Shift Register:** 16-bit shift register (`USIDR`/`USISR`) with 2-wire and 3-wire modes.
+* **Clocking:** Software-driven clock generation and detection.
+* **Interrupts:** Overflow interrupt on byte transfers.
+* **Start Condition:** Dedicated hardware detector for I²C start conditions.
+
+---
+
+## ADC
+
+### Classic 10-bit ADC
+
+Standard successive approximation analog-to-digital converter:
+
+* **Resolution:** 10-bit resolution (0–1023).
+* **Multiplexer:** Up to 16 input channels.
+* **Modes:** Single-ended and differential measurement modes.
+* **References:** AVCC, internal 1.1V bandgap, or external AREF.
+* **Prescaling:** Configurable clock prescaler (/2, /4, /8, /16, /32, /64, /128).
+* **Triggers:** Free-running, single-conversion, and auto-trigger modes.
+* **Interrupts:** ADC conversion complete interrupt (`ADIE`).
+* **Formatting:** Left-adjust option (`ADLAR`) to easily read 8-bit precision results.
+
+### AVR8X 10-bit ADC
+
+Enhanced features:
+
+* **PGA:** Differential channels with programmable gain.
+* **Configurable Sampling:** Configurable sample duration and capacitance.
+* **Oversampling:** Hardware-assisted accumulation for improved effective resolution.
+* **Window Comparator:** Automated window comparison against high and low thresholds.
+
+### EA 12-bit Differential ADC
+
+Found in AVR-Ex devices:
+
+* **Resolution:** 12-bit differential ADC.
+* **PGA:** Integrated programmable gain amplifier with 1x, 8x, 16x, and 32x configurations.
+* **References:** Internal voltage references at 0.55V, 1.1V, 2.5V, and 4.3V.
+* **Throughput:** Sampling rate up to 115 ksps.
+* **Accumulator:** Hardware accumulation buffer for automated averaging.
+
+### XMEGA ADC
+
+* **Resolution:** 12-bit signed and unsigned modes.
+* **Inputs:** Up to 16 single-ended or 8 differential channels.
+* **DMA Trigger:** Direct DMA transfers on conversion completion.
+* **Event System:** Hardware-triggered sampling via the event system.
+
+---
+
+## Analog Comparator
+
+### Classic Analog Comparator
+
+* **Inputs:** Compares AIN0 (positive) against AIN1 or the internal bandgap reference.
+* **Timer Capture:** Can trigger Timer1 input capture for precise pulse-width measurement.
+* **Edge Selection:** Interrupts configurable on rising, falling, or toggling edges.
+* **Hysteresis:** Enable/disable control for noise rejection.
+
+### AVR8X Analog Comparator
+
+* **Multiplexed Inputs:** Multiple positive and negative channels.
+* **Hysteresis:** Programmable hysteresis levels (none, small, medium, large).
+* **Output Config:** Wired-AND and wired-OR output configurations.
+* **Hardware Integration:** Direct routing to the Event System.
+
+### XMEGA Analog Comparator
+
+* **Instances:** Multiple independent comparator instances (AC0, AC1, AC2).
+* **Filtering:** Output filtering and event generation.
+
+---
+
+## DAC
+
+### Classic DAC
+
+* **Resolution:** 8-bit digital-to-analog converter.
+* **Reference:** Selectable references, sharing the output on the AREF pin.
+
+### AVR8X DAC
+
+* **Resolution:** 10-bit resolution with left-shifted mode.
+* **Internal Routing:** Can route output internally to act as a reference for the Analog Comparator.
+* **Triggers:** Event-triggered output updates.
+
+### XMEGA DAC
+
+* **Resolution:** 12-bit dual-channel DAC.
+* **DMA Integration:** DMA-driven buffer updates for arbitrary waveform generation.
+
+---
+
+## EEPROM
+
+* **Storage:** Byte-addressed non-volatile memory ranging from 256 bytes to 4 KB.
+* **Write Modes:** Page-based and byte-based erase/write options.
+* **Safety:** Atomic page write operations and power-off detection to prevent corruption.
+* **Interrupts:** EEPROM Ready interrupt (`EE_READY`) triggered when the write completes.
+* **XMEGA:** Memory-mapped access via the NVM controller for maximum performance.
+
+---
+
+## Watchdog Timer
+
+* **Safety Reset:** Recovers from software lockups by resetting the MCU if not cleared within the timeout window.
+* **Timeout Range:** 16 ms to 8 s (classic), 8 ms to 16.3 s (modern).
+* **Window Mode:** Requires the watchdog to be cleared within a specific timing window to prevent reset.
+* **Interrupt+Reset Mode:** Generates an interrupt first, followed by a hardware reset on the next timeout.
+
+---
+
+## Real-Time Counter (RTC)
+
+* **Timekeeping:** 16-bit low-power counter utilizing an external 32.768 kHz oscillator.
+* **Clocking:** Asynchronous operation independent of the main CPU clock.
+* **Alarms:** Compare match interrupts for alarm and wake-up functions.
+
+---
+
+## USB
+
+### Classic USB
+
+Found in AT90USB devices:
+
+* **Speed:** USB 2.0 Full-Speed (12 Mbps) device.
+* **Endpoints:** Up to 7 endpoints supporting control, bulk, interrupt, and isochronous transfers.
+* **Buffering:** FIFO memory for endpoint buffering.
+* **Sync:** Start of Frame (`SOF`) interrupts.
+
+### AVR8X USB
+
+* **Descriptor RAM:** Direct configuration of endpoints in RAM.
+* **Hardware ZLP:** Automatic Zero-Length Packet generation.
+* **Calibration:** On-chip pad calibration for crystal-less clock recovery.
+
+---
+
+## CAN
+
+Controller Area Network interface (AT90CAN devices):
+
+* **Standard & Extended:** Support for CAN 2.0A (11-bit identifier) and 2.0B (29-bit identifier).
+* **Mailboxes:** 15 receive mailboxes with filters; 3 transmit mailboxes with priority arbitration.
+* **Baud Rates:** Speeds up to 1 Mbps with configurable bit segments and prescalers.
+* **Safety:** Error tracking and listen-only monitoring mode.
+
+---
+
+## DMA
+
+Direct Memory Access (XMEGA and AVR8X):
+
+* **Channels:** 4 to 8 independent channels.
+* **Routing:** Transfer data between RAM, flash, I/O registers, and peripheral buffers.
+* **Event Triggered:** Zero-CPU-overhead transfers triggered by hardware events.
+* **Arbitration:** Round-robin or fixed-priority channel scheduling.
+
+---
+
+## Event System
+
+Hardware event routing for peripheral-to-peripheral communication (AVR8X, XMEGA):
+
+* **Generators:** Timer overflows, analog comparator transitions, pin changes, ADC conversions.
+* **Users:** Timer count/capture/restart, ADC trigger, DMA request, Custom Logic.
+* **Routing:** Asynchronous, zero-latency signal routing bypasses the CPU completely.
+
+---
+
+## Configurable Custom Logic (CCL)
+
+On-chip programmable combinational logic blocks (AVR8X, AVR-Ex):
+
+* **Lookup Tables:** Configurable Look-Up Tables (LUTs) supporting 3-input logic functions.
+* **Sequential Logic:** Edge-detection filters, feedback loops, and sequential latches.
+* **Integration:** Replaces external glue logic by mapping internal signals directly.
+
+---
+
+## HC-05 Bluetooth Module Emulation
+
+VioAVR includes built-in emulation for an HC-05 Bluetooth module connected via UART:
+
+* **AT Commands:** Emulates the AT command set for configuration (baud rate, device name, pairing PIN).
+* **PTY Bridge:** Bridges data transparently using a pseudo-terminal (PTY) on the host machine.
+* **Connection State:** Simulates pairing states and data mode pass-through.
+
+---
+
+## LCD Controller
+
+Segment LCD driver found in some ATmega devices:
+
+* **Control:** Segment and common pin driver supporting 1/2, 1/3, and 1/4 duty cycles.
+* **Blink:** Hardware blink control with configurable on/off intervals.
+* **Memory:** Dedicated display data memory for mapping segment states.
+
+---
+
+## Power Stage Controller (PSC)
+
+* **Motor Control:** Three complementary output pairs designed for 3-phase motor control (AVR-Dx).
+* **Safety:** Dedicated fault inputs for automatic shutdown/emergency breaking.
+* **Dead Time:** Programmable dead-time generator.
+
+---
+
+## Operational Amplifier (Opamp)
+
+On-chip op-amp module (AVR-Ex):
+
+* **Configurations:** Multiple op-amp instances with software-configured feedback loops.
+* **Gain:** Programmable gain amplifier with ranges from 1x to 32x.
+* **Low Power:** Configurable low-power or high-speed operation.
+
+---
+
+## Zero-Crossing Detector (ZCD)
+
+Mains zero-crossing detection (AVR-Ex):
+
+* **Direct Sensing:** Safely senses AC mains zero-crossing points.
+* **Event Routing:** Outputs zero-crossing events directly to the Event System for synchronized AC switching.
+* **Interrupts:** Configurable interrupts on positive or negative transitions.

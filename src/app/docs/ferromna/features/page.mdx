@@ -1,0 +1,121 @@
+# Features
+
+FerroMNA provides a comprehensive simulation capability covering analog, digital, RF, and mixed-signal circuit design. This page is the complete reference for all supported analysis types, device models, and convergence algorithms.
+
+## Analysis Types (16)
+
+| Analysis | SPICE Card | Description |
+|---|---|---|
+| DC Operating Point | `.op` | Newton-Raphson iteration with convergence aids: GMIN stepping, source stepping, line search |
+| DC Sweep | `.dc` | Sweeps a source across a range; single or dual source support |
+| AC Small-Signal | `.ac` | Frequency sweep (DEC/LIN/OCT) with complex MNA formulation |
+| Transient | `.tran` | Time-domain with Backward Euler/Trapezoidal integration and adaptive LTE timestep control |
+| Harmonic Balance | `.hb` | Multi-tone RF analysis in the frequency domain via FFT |
+| Noise | `.noise` | Output noise spectral density using the adjoint method |
+| Pole-Zero | `.pz` | Complex-plane pole/zero extraction via eigenvalue decomposition |
+| Sensitivity | `.SENS` | DC and AC parameter sensitivity (direct method, ngspice-compatible) |
+| Optimization | `.OPTIMIZE` | Gradient-descent circuit optimization with weighted performance targets |
+| Monte Carlo | `.MC` | Statistical yield analysis with Gaussian and uniform parameter tolerances |
+| FFT / Spectral | — | Frequency spectrum with Hann, Hamming, and Blackman windowing options |
+| S-Parameter | `.SP` | S-parameter extraction with Z/Y/S conversions and mixed-mode port support |
+| X-Parameters | — | Large-signal characterization via harmonic balance perturbation |
+| Distortion | `.DISTO` | HD2/HD3 and IM2/IM3 harmonic and intermodulation distortion |
+| Transfer Function | `.TF` | DC gain, input impedance, and output impedance |
+| Step Sweep | `.STEP` | Parameter step sweep (LIST or START/STOP/INC) |
+
+---
+
+## Device Models (43+)
+
+### Passives
+
+| Model | Parameters | Features |
+|---|---|---|
+| **Resistor** | R, TC1/TC2/TCE, Rsh/L/W, KF/AF/EF | Temperature-dependent, sheet resistance model, thermal and flicker noise, SOA limits |
+| **Capacitor** | C, ESR, ESL, VJ/M, TC1/TC2 | Linear, varactor, ceramic types; BE/Trapezoidal/Gear2 integration |
+| **Inductor** | L, NT, TC1/TC2, geometry | Lundin/Nagaoka geometry correction, temperature scaling |
+| **Coupled Inductor** | K, L1, L2 | 2×2 inductance matrix, mutual inductance |
+
+### Semiconductors
+
+| Model | Parameters | Accuracy |
+|---|---|---|
+| **Diode** | IS, N, RS, BV/IBV, CJO/VJ/M, TT, ISR/NR | SPICE Level 3, breakdown, recombination, soft recovery, self-heating |
+| **BJT** | IS, BF, BR, VAF/VAR, IKF/IKR, CJC/CJE, TF/TR | Gummel-Poon with area scaling, temperature, substrate, quasi-saturation, NQS, noise |
+| **MOSFET** | VTO, KP, LAMBDA, PHI, GAMMA, TOX | Levels 1, 2, 3, 6, 9 (BSIM1) with Ward-Dutton charge model |
+| **JFET** | VTO, Beta, Lambda, IS, N | N/P-channel; Sydney University B-parameter model |
+| **MESFET** | VTO, Beta, Alpha, Lambda | Curtice cubic model |
+| **VDMOS** | VTH, KP, RD/RS, IS, body diode | Power MOSFET with self-heating, quasi-saturation, and SOA |
+
+### Advanced Models
+
+| Model | Type | Details |
+|---|---|---|
+| **BSIM3** | MOSFET | Full BSIM3v3 with GIDL, gate tunneling, and temperature effects (17,000+ lines) |
+| **BSIM4** | MOSFET | BSIM4v5 with geometry binning, JUNCAP2, and self-heating (35,000+ lines) |
+| **BSIM-CMG** | FinFET | 5-terminal charge-based formulation with surface potential solver |
+| **BSIM-Bulk** | MOSFET | Full analytic derivatives, GIDL, temperature |
+| **BSIM-SOI** | SOI MOSFET | FD-SOI and PD-SOI variants with floating body and self-heating |
+| **EKV** | MOSFET | Inversion-coefficient classification with analytical derivatives |
+| **PSP** | MOSFET | Surface-potential model with Ward-Dutton charges and edge transistor |
+| **VBIC** | BJT | 4-terminal, forward/reverse Early, substrate, improved convergence |
+| **HICUM2** | BJT | GICCR transfer current, NQS, self-heating, SOA |
+| **MEXTRAM** | BJT | Transit times, series resistances, self-heating |
+| **Angelov GaN** | GaN HEMT | 5 `Idsmod` variants, 5 `Capmod` variants, RF dispersion |
+
+### Sources
+
+| Type | Waveforms |
+|---|---|
+| Voltage / Current | DC, AC, SINE, PULSE, EXP, PWL, SFFM, AM, WAV, expression-based, TRNOISE |
+| Controlled | VCVS (E), VCCS (G), CCCS (F), CCVS (H) |
+| Behavioral | Full expression parser with `V(node)`, `I(branch)`, and 60+ AST node types |
+
+### Transmission Lines
+
+| Type | Model |
+|---|---|
+| Lossless (T) | Characteristic impedance and propagation delay |
+| Lossy LTRA (O/Y) | Frequency-dependent RLGC model |
+| Coupled (P) | Multi-conductor with modal decomposition |
+| Uniform RC (U) | Lumped RC ladder line |
+
+### Digital (XSPICE)
+
+18 device types: AND, OR, NOT, NAND, NOR, XOR, XNOR, BUF, DFF, JKFF, SRFF, TFF, D-Latch, SR-Latch, Tristate, Pullup, Pulldown, Multiplexer
+
+### Mixed-Signal Code Models (30+)
+
+ADC/DAC bridges, Comparator, Counter, PWM, Oscillator, Frequency Divider, LUT, Shift Register, RAM, Delay Line, Neural Network, SAR Controller, and more.
+
+### Analog Signal Processing (43 blocks)
+
+Gain, Summer, Limit, Integrator, Differentiator, S-domain Transfer Function, Divider, Multiplier, Slew Rate Limiter, Sample-Hold, PWL, Table2D/3D, Memristor, VCOs, Transmission Lines, and more.
+
+---
+
+## Convergence Algorithm
+
+FerroMNA uses a six-stage convergence strategy with automatic fallback. Each stage is tried in order; if a stage fails to converge, the next stage is invoked automatically.
+
+1. **Direct Newton-Raphson** — Chord method with LU factor reuse; the fastest path for well-conditioned circuits
+2. **GMIN Stepping** — Alan Gillespie algorithm: injects a conductance from 1×10⁻² → 1×10⁻¹² S and solves at each step
+3. **Source Stepping** — Adaptive source ramp from zero with state save/restore at each step
+4. **OPTran Fallback** — Raised-cosine source ramp with automatic timestep halving
+5. **Line Search** — Applies Armijo damping when the maximum voltage update exceeds 10 V in a single NR step
+6. **Limit Cycle Detection** — Detects oscillating NR iterations using a 3-iteration history and averages the state to break the cycle
+
+---
+
+## Performance Benchmarks
+
+Measured on a 12-core Intel Core i7 machine, single-threaded:
+
+| Circuit | FerroMNA | ngspice | Speedup |
+|---|---|---|---|
+| RCA3040 (11 BJTs, 50 nodes) — transient | 89 ms | 293 ms | **3.3×** |
+| RC charging — transient | 0.78 ms | 1.0 ms | **1.3×** |
+| BSIM4 common-source — AC | 0.61 ms | 1.0 ms | **1.6×** |
+| MOSFET Level 3 common-source — AC | 0.33 ms | 1.0 ms | **3.1×** |
+
+Performance varies by circuit topology, model complexity, and analysis type. BJT-heavy circuits with dense node networks show the largest speedups due to FerroMNA's efficient Jacobian evaluation and sparse solver.

@@ -1,0 +1,131 @@
+# AI Co-Pilot
+
+VioraEDA integrates AI capabilities across three layers: a context-aware Gemini AI assistant embedded in the schematic editor, an MCP server that exposes the design environment to external AI agents, and an ML Dataset API for high-volume batch simulation.
+
+## Gemini AI Co-Pilot
+
+The Gemini co-pilot is a chat-based assistant integrated directly into the VioraEDA workspace. It operates with full awareness of the current schematic, simulation results, and project structure.
+
+### Capabilities
+
+- **ERC/DRC debugging** — Explains rule violations and suggests corrective edits
+- **Snippet generation** — Generates SPICE subcircuits, FluxScript blocks, and schematic templates from natural language descriptions
+- **Circuit review** — Analyses the open schematic for design issues, component sizing errors, and missing decoupling
+- **Component recommendations** — Suggests real-world parts with Octopart integration for availability checks
+- **Natural language to schematic** — Converts a circuit description into a placed, wired schematic
+- **AI style transfer** — Applies one of 7 style presets (TI, ADI, LTspice, IEC, Military, Modern, Vintage) to the schematic appearance
+
+### QML Interface
+
+The co-pilot panel is built entirely in QML and consists of five components:
+
+| Component | Role |
+|---|---|
+| `GeminiRoot` | Chat history, session management, message display |
+| `Composer` | Input field with `@`-mention file autocomplete and image paste |
+| `ChatCard` | Individual message rendering with code block highlighting |
+| `ToolDashboard` | Overlay showing active AI tool calls in real-time |
+| `PanelHeader` | Navigation bar and conversation management |
+
+---
+
+## MCP Server (Model Context Protocol)
+
+The MCP server exposes VioraEDA's design environment to any MCP-compatible AI agent — including Claude, Gemini, and Cursor — through a standardized JSON-RPC interface. It enables external agents to query the schematic, run simulations, render visuals, and read/write project files.
+
+### Viora Tools (13)
+
+| Tool | Description |
+|---|---|
+| `viora_status` | Health check: confirms the server is running and returns version info |
+| `viora_list_files` | Lists all files in the current project directory |
+| `viora_read_file` | Returns the contents of a project file |
+| `viora_write_file` | Writes content to a project file |
+| `viora_symbol_list` | Lists all available symbols in the library |
+| `viora_schematic_query` | Queries the schematic for components, nets, and connections |
+| `viora_pcb_render` | Renders the active PCB to a PNG image |
+| `viora_schematic_render` | Renders the active schematic to a PNG image |
+| `viora_symbol_render` | Renders a specific symbol to a PNG image |
+| `viora_flux_run` | Executes a FluxScript snippet and returns the output |
+| `viora_flux_help` | Returns FluxScript API documentation for a given function |
+| `viora_ui_get_current_tab` | Returns the currently active tab in the GUI |
+| `viora_ui_open_project` | Opens a project in the GUI |
+
+### VioSpice Tools (4)
+
+| Tool | Description |
+|---|---|
+| `viospice_netlist_run` | Runs a full SPICE simulation (supports analog, FluxScript behavioral blocks, SystemVerilog, and XSPICE code models) |
+| `viospice_netlist_to_schematic` | Converts a SPICE netlist to a VioraEDA schematic |
+| `viospice_raw_info` | Returns metadata for a simulation result file (nodes, analysis type, sweep range) |
+| `viospice_raw_export` | Exports waveform data from a result file to JSON, CSV, or Parquet |
+
+### Safety and Reliability
+
+- All file read/write operations validate paths against the active project directory
+- Failed tool calls are automatically retried on transient errors
+- Rate limiting and API key authentication prevent unauthorized access
+
+---
+
+## ML Dataset API
+
+The ML Dataset API is a high-throughput HTTP API for generating SPICE simulation datasets at scale. It supports concurrent batch jobs and exports results in formats suitable for training machine learning models.
+
+### Synchronous Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/ml/health` | GET | Health check |
+| `/api/ml/simulate` | POST | Run a single simulation and return results |
+| `/api/ml/batch` | POST | Run a batch of simulations concurrently |
+| `/api/ml/sweep` | POST | Run a parametric sweep and return all results |
+| `/api/ml/examples/voltage-divider-classification` | GET | Example dataset: voltage divider classification |
+
+### Asynchronous Endpoints
+
+For large batches, use the asynchronous job endpoints to avoid HTTP timeout limits:
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/ml/jobs/simulate` | POST | Submit an async simulation job |
+| `/api/ml/jobs/batch` | POST | Submit an async batch job |
+| `/api/ml/jobs/sweep` | POST | Submit an async sweep job |
+| `/api/ml/jobs/{job_id}` | GET | Poll job status and retrieve results when complete |
+
+### Sweep Features
+
+The parametric sweep engine supports:
+
+- **Cartesian product sampling** — Sweep over all combinations of parameter values
+- **Random sampling** — Sample from parameter distributions for Monte Carlo datasets
+- **Train/val/test splits** — Automatic dataset partitioning
+- **Constraints** — Enforce relationships between parameters (e.g., param-to-constant, param-to-param)
+- **Derived labels** — Compute output labels via arithmetic operations (`add`, `sub`, `mul`, `div`, `pow`, `min`, `max`, `abs`)
+- **Engineering formatting** — SPICE-style suffixes (`1k`, `10n`, `4.7u`) in parameter values
+
+---
+
+## AI Pipeline
+
+The AI pipeline provides 17 tools across three categories, used internally by the Gemini co-pilot and externally by MCP agents.
+
+### Simulation Tools (6)
+`list_nodes`, `get_signal_data`, `compute_average_power`, `plot_signal`, `run_simulation`, `setup_parameter_sweep`
+
+### Layout Tools (7)
+`generate_snippet`, `execute_commands`, `execute_pcb_commands`, `generate_schematic_from_netlist`, `transfer_schematic_style`, `create_netlist_file`, `remember_fact`
+
+### General Tools (4)
+`web_search`, `lookup_component_data`, `assign_real_world_part`, `synthesize_subcircuit`
+
+### Supporting Services
+
+| Service | Description |
+|---|---|
+| Memory Store | Persistent key-value memory for AI context across sessions |
+| Simulation Adapter | Unified interface between AI tools and the simulation engine |
+| Power Metrics | Average power computation from transient waveforms |
+| Waveform Visualization | Plot service for generating waveform images |
+| Supply Chain | Octopart integration for real-world part lookup and availability |
+| Project Context | Retriever that provides the AI with relevant design context |

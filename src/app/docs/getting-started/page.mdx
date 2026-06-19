@@ -1,0 +1,154 @@
+# Getting Started
+
+The Viora EDA ecosystem is a collection of open-source tools for electronic design automation, circuit simulation, and embedded systems development. It is built with modern C++20, Qt6, Python, and Rust, and targets Linux, macOS, and Windows.
+
+## What Is Viora EDA?
+
+Viora EDA is a professional-grade, open-source suite covering the full electronics design flow — from schematic capture and PCB layout to mixed-mode SPICE simulation, firmware development, and AI-assisted circuit optimization. The ecosystem is modular: each project stands alone but integrates seamlessly with the others.
+
+## Projects Overview
+
+| Project | Language | Description |
+|---|---|---|
+| **VioraEDA** | C++20 / Qt6 | Full EDA suite: schematic editor, PCB layout, mixed-mode SPICE simulator, symbol/footprint editors, Gemini AI co-pilot, and FluxScript extensions. The centerpiece of the ecosystem. |
+| **VioAVR** | C++20 | High-performance AVR instruction set simulator with cycle-accurate timing, peripheral emulation (UART, SPI, I2C, Timer, ADC, PWM), and GDB RSP debugging support. |
+| **FluxScript** | C++ / LLVM | JIT-compiled scripting language for behavioral model blocks, custom simulations, and 27+ widget functions. Powers the scripting backbone of VioraEDA extensions. |
+| **VioMATRIXC** | C++ | ngspice-derived SPICE engine with LTspice-compatible syntax, extended component models, and a custom solver for mixed-mode simulation. |
+| **viora-3d-editor** | C++ / OpenGL | 3D PCB viewer with OpenGL rendering, camera controls, copper layer visualization, and STEP model export for mechanical CAD integration. |
+| **VspiceDroid** | Kotlin / Android | Android companion app — view schematics, run simulations on-device, and share designs via the Viora cloud sync API. |
+| **VioCode** | Python / TypeScript | VS Code extension providing SPICE netlist syntax highlighting, FluxScript language support, and an integrated simulation runner. |
+
+## System Requirements
+
+| Requirement | Minimum | Recommended |
+|---|---|---|
+| **OS** | Ubuntu 22.04 / macOS 13 / Windows 10 | Ubuntu 24.04 / macOS 14 / Windows 11 |
+| **C++ Compiler** | GCC 13 / Clang 16 / MSVC 2022 | GCC 14 / Clang 18 |
+| **Qt** | 6.5 | 6.7+ |
+| **CMake** | 3.20 | 3.28+ |
+| **Python** | 3.10 | 3.12+ |
+| **Eigen** | 3.4 | 3.4+ |
+| **LLVM** | 16 | 18+ (for FluxScript JIT) |
+| **RAM** | 4 GB | 8 GB+ |
+| **Disk** | 2 GB free | 5 GB+ (with library data) |
+
+## Quick Install
+
+### VioraEDA
+
+```bash
+git clone https://github.com/janadasroor/viora-eda.git
+cd viora-eda
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+sudo cmake --install build
+```
+
+### VioAVR
+
+```bash
+git clone https://github.com/janadasroor/vio-avr.git
+cd vio-avr
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+sudo cmake --install build
+```
+
+### FluxScript
+
+```bash
+git clone https://github.com/janadasroor/fluxscript.git
+cd fluxscript
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=/usr/lib/llvm-18/cmake
+cmake --build build -j$(nproc)
+sudo cmake --install build
+```
+
+### VioMATRIXC
+
+```bash
+git clone https://github.com/janadasroor/viomatrixc.git
+cd viomatrixc
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+sudo cmake --install build
+```
+
+### viora-3d-editor
+
+```bash
+git clone https://github.com/janadasroor/viora-3d-editor.git
+cd viora-3d-editor
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+sudo cmake --install build
+```
+
+### VspiceDroid (Android)
+
+```bash
+git clone https://github.com/janadasroor/vspice-droid.git
+cd vspice-droid
+./gradlew assembleRelease
+```
+
+### VioCode (VS Code Extension)
+
+```bash
+cd viocode-extension
+npm install
+npm run package
+code --install-extension viocode-*.vsix
+```
+
+## First Simulation
+
+The fastest way to verify your installation is to run a simple RC transient analysis from the command line:
+
+```bash
+# Create a minimal test netlist
+cat > test.rc << 'EOF'
+* RC Low-Pass Filter
+V1 in 0 DC 5
+R1 in out 1k
+C1 out 0 100n
+.tran 1u 10m
+.end
+EOF
+
+# Run with VioMATRIXC
+viomatrixc test.rc -o test.raw
+
+# Or open VioraEDA for interactive design
+VioraEDA
+```
+
+## Detailed Documentation
+
+- [Installation Guide](/docs/getting-started/installation) — Platform-specific build instructions and dependency setup
+- [Quick Start Tutorial](/docs/getting-started/quickstart) — Your first schematic, simulation, and PCB layout
+- [VioraEDA Overview](/docs/vioraeda) — Architecture, modules, and feature deep-dives
+- [Schematic Editor](/docs/vioraeda/schematic) — Component types, tools, ERC, and netlist generation
+- [PCB Layout Editor](/docs/vioraeda/pcb) — Layers, traces, DRC, auto-router, and Gerber export
+- [SPICE Simulator](/docs/vioraeda/simulator) — Analysis types, solver engine, and waveform viewer
+- [AI Integration](/docs/vioraeda/ai) — Gemini co-pilot, MCP server, and ML dataset API
+
+## Community
+
+Viora EDA is developed by the open-source community. Get involved:
+
+- **GitHub** — Report issues, request features, and browse the source code at `github.com/janadasroor`
+- **Discussions** — Ask questions and share designs on GitHub Discussions
+- **Discord** — Real-time chat with developers and users
+
+## Contributing
+
+Contributions are welcome. The preferred workflow:
+
+1. Fork the repository on GitHub
+2. Create a feature branch from `main`
+3. Implement your changes with accompanying tests
+4. Run `cmake --build build --target test` to verify correctness
+5. Open a pull request with a clear description of the change
+
+All code must compile cleanly with `-Wall -Wextra -Werror` and pass the project's linting configuration. See `CONTRIBUTING.md` in each repository for detailed guidelines.

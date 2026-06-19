@@ -1,0 +1,159 @@
+# CLI Tools
+
+VioAVR provides a suite of command-line tools for simulation, debugging, co-simulation bridging, and device descriptor management. These tools are designed to integrate seamlessly into build systems, CI/CD pipelines, and local development environments.
+
+---
+
+## vioavr_cli
+
+The primary command-line interface for running AVR simulations. It supports isolated free-running execution of Intel HEX firmware images.
+
+### Command-Line Usage
+
+```bash
+vioavr_cli [OPTIONS] <hex_file>
+```
+
+### Command-Line Options
+
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--mcu <name>` | Specify the target MCU (e.g., `atmega328p`, `attiny85`, `atmega4809`) | `ATmega328P` |
+| `--trace` | Enable cycle-by-cycle instruction tracing to stdout | Off |
+| `--verbose` | Enable debug output (peripheral mappings, register accesses, etc.) | Off |
+| `--quiet` | Suppress all non-error console output | Off |
+| `--summary` | Show execution summary statistics upon exit | Off |
+| `--show-state` | Show peripheral register state after simulation ends | Off |
+| `--benchmark` | Run a 100-million cycle benchmark | Off |
+| `--max-cycles <n>` | Limit simulation to `n` clock cycles | Unlimited |
+| `--eeprom-file <f>`| Load and save EEPROM contents from/to the specified file | None |
+| `--list-devices` | Show all supported MCU names and exit | — |
+| `--help` | Show usage options and exit | — |
+
+### Command-Line Examples
+
+```bash
+# Run a blinky firmware
+vioavr_cli --mcu atmega328p blink.hex
+
+# Run a firmware with instruction tracing and limit to 1,000,000 cycles
+vioavr_cli --mcu atmega328p --trace --max-cycles 1000000 firmware.hex
+
+# Benchmark execution speed
+vioavr_cli --mcu atmega2560 --benchmark big_app.hex
+
+# Run a simulation and show the execution summary and final register state
+vioavr_cli --mcu atmega328p --summary --show-state app.hex
+```
+
+---
+
+## vioavr-bridge-daemon
+
+A background daemon that manages shared-memory bridges between VioAVR instances and external simulators (such as SPICE/ngspice). It routes digital pin states and analog voltage samples.
+
+### Daemon Usage
+
+```bash
+vioavr-bridge-daemon [OPTIONS]
+```
+
+### Daemon Options
+
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--mcu <name>` | Select the target MCU | `atmega328p` |
+| `--instance <id>` | Specify the shared-memory instance name. This must match the `mcu_type` or `instance` parameter in the netlist's `.model d_vioavr(...)` line. | MCU name |
+| `--gdb <port>` | Start a GDB stub on the specified TCP port for remote debugging | Disabled |
+| `--help` | Show usage options and exit | — |
+
+### SHM Bridge Usage
+
+To perform mixed-signal co-simulation:
+
+```bash
+# Start the bridge daemon for atmega328p
+vioavr-bridge-daemon --mcu atmega328p --instance sim0
+
+# Start with GDB debugging enabled on port 3333
+vioavr-bridge-daemon --mcu atmega328p --instance sim0 --gdb 3333
+```
+
+---
+
+## dump_device_descriptor
+
+A diagnostic helper tool located in the `tools/` folder of the VioAVR repository. It prints the compiled hardware definition for a specified MCU, including memory boundaries, register addresses, interrupt vectors, and peripheral offsets.
+
+### Compilation
+
+If not already compiled, you can build it from the VioAVR source root using a C++20 compiler:
+
+```bash
+g++ -std=c++20 -I./src tools/dump_device_descriptor.cpp build/src/core/libvioavr_core.a -o dump_device_descriptor
+```
+
+### Descriptor Tool Usage
+
+```bash
+./dump_device_descriptor <device_name>
+```
+
+### Supported Devices
+
+To see details for a device, pass its name as the argument. The tool supports:
+* `atmega328p`
+* `atmega4809`
+* `atmega2560`
+* `atmega32u4`
+* `attiny85`
+* `at90pwm3`
+* `atmega808`
+* `atmega1608`
+* `atmega3208`
+* `atmega4808`
+* `atmega1609`
+* `atmega3209`
+* `atmega809`
+* `atmega324pb`
+* `atmega168pb`
+* `atmega88pb`
+* `atmega328pb`
+
+### Descriptor Tool Example
+
+```bash
+./dump_device_descriptor atmega328p
+```
+
+---
+
+## gen_device_descriptor.py
+
+A Python script located in the `tools/` folder that generates C++ device descriptor source files from Microchip ATDF (Atmel Device Family Pack) XML files.
+
+### Generator Script Usage
+
+```bash
+python3 tools/gen_device_descriptor.py [atdf_file] [OPTIONS]
+```
+
+### Generator Script Options
+
+| Flag | Description |
+| :--- | :--- |
+| `--all` | Generate all ATtiny descriptors |
+| `--all-classic` | Generate all ATmega/AT90 classic descriptors |
+| `--all-avr-dx` | Generate all AVR-DA/DB/DD/DU descriptors |
+| `--all-avr-ex` | Generate all AVR-EA/EB descriptors |
+| `--all-avr-lx` | Generate all AVR-LA descriptors |
+| `--all-avr-sx` | Generate all AVR-SD descriptors |
+| `--all-xmega` | Generate all XMEGA descriptors |
+| `--output-dir <dir>` | Output directory for the generated C++ files |
+
+### Generator Script Example
+
+```bash
+# Generate C++ descriptor files for ATmega328P from its pack ATDF file
+python3 tools/gen_device_descriptor.py ATmega328P.atdf --output-dir src/core/devices
+```

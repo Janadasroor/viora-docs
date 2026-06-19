@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary: #2563eb;
+  --primary-light: #3b82f6;
+  --sidebar-bg: #f8fafc;
+  --sidebar-border: #e2e8f0;
+  --code-bg: #1e293b;
+  --accent: #10b981;
+  --table-bg: #f8fafc;
+  --table-border: #e2e8f0;
+  --inline-code-bg: #f1f5f9;
+  --inline-code-color: #e11d48;
+}
+
+.dark {
+  --background: #030712;
+  --foreground: #f3f4f6;
+  --primary: #3b82f6;
+  --primary-light: #60a5fa;
+  --sidebar-bg: #111827;
+  --sidebar-border: #1f2937;
+  --code-bg: #1e293b;
+  --accent: #10b981;
+  --table-bg: #1f2937;
+  --table-border: #374151;
+  --inline-code-bg: #1f2937;
+  --inline-code-color: #f87171;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Inter", Arial, Helvetica, sans-serif;
+}
+
+/* Sidebar */
+.sidebar {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  overflow-y: auto;
+  border-right: 1px solid var(--sidebar-border);
+  background: var(--sidebar-bg);
+  padding: 1.5rem 1rem;
+}
+
+@media (max-width: 1024px) {
+  .sidebar { display: none; }
+}
+
+/* Main content */
+.main-content {
+  margin-left: 280px;
+  margin-top: 64px;
+  padding: 2rem 3rem;
+  max-width: 900px;
+}
+
+@media (max-width: 1024px) {
+  .main-content { margin-left: 0; margin-top: 64px; padding: 1.5rem; }
+}
+
+@media (max-width: 1280px) {
+  .main-content { max-width: 100%; }
+}
+
+@media (min-width: 1280px) {
+  .main-content { margin-right: 280px; }
+}
+
+
+/* Code blocks */
+pre {
+  background: var(--code-bg);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  margin-bottom: 1rem;
+  border: 1px solid #334155;
+}
+
+pre > code {
+  background: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: inherit !important;
+  font-size: inherit !important;
+}
+
+code {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+:not(pre) > code {
+  background: var(--inline-code-bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.875em;
+  color: var(--inline-code-color);
+}
+
+/* Prism.js */
+.token.comment, .token.prolog, .token.doctype, .token.cdata { color: #6b7280; }
+.token.punctuation { color: #9ca3af; }
+.token.property, .token.tag, .token.boolean, .token.number, .token.constant, .token.symbol, .token.deleted { color: #f97316; }
+.token.selector, .token.attr-name, .token.string, .token.char, .token.builtin, .token.inserted { color: #10b981; }
+.token.operator, .token.entity, .token.url, .language-css .token.string, .style .token.string { color: #3b82f6; }
+.token.atrule, .token.attr-value, .token.keyword { color: #8b5cf6; }
+.token.function, .token.class-name { color: #f59e0b; }
+.token.regex, .token.important, .token.variable { color: #ec4899; }
+
+/* Prose */
+.prose h1 { font-size: 2rem; font-weight: 800; margin-bottom: 1rem; margin-top: 2rem; }
+.prose h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; margin-top: 2rem; border-bottom: 1px solid var(--table-border); padding-bottom: 0.5rem; }
+.prose h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1.5rem; }
+.prose p { margin-bottom: 1rem; line-height: 1.75; }
+.prose ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+.prose ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+.prose li { margin-bottom: 0.25rem; }
+.prose a { color: var(--primary); text-decoration: underline; }
+.prose a:hover { color: var(--primary-light); }
+.prose blockquote { border-left: 4px solid var(--primary); padding-left: 1rem; color: #64748b; margin: 1rem 0; }
+.prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.prose th, .prose td { border: 1px solid var(--table-border); padding: 0.5rem 0.75rem; text-align: left; }
+.prose th { background: var(--table-bg); font-weight: 600; }
+.prose img { border-radius: 8px; margin: 1rem 0; }
+.prose hr { border: none; border-top: 1px solid var(--table-border); margin: 2rem 0; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.dark ::-webkit-scrollbar-thumb { background: #4b5563; }

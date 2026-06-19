@@ -1,0 +1,246 @@
+# Standard Library
+
+FluxScript ships with a comprehensive standard library organized into modules. Each module is imported with `use` and provides domain-specific functionality for mathematics, signal processing, statistics, string manipulation, and complex matrix operations.
+
+---
+
+## `math.flux`
+
+Core mathematical functions operating on scalars and vectors.
+
+| Function | Description | Signature |
+| :--- | :--- | :--- |
+| `max(a, b)` | Returns the larger of two values. | `(double, double) -> double` |
+| `min(a, b)` | Returns the smaller of two values. | `(double, double) -> double` |
+| `clamp(x, lo, hi)` | Clamps `x` to the range `[lo, hi]`. | `(double, double, double) -> double` |
+| `lerp(a, b, t)` | Linear interpolation between `a` and `b` by factor `t`. | `(double, double, double) -> double` |
+| `rad2deg(r)` | Converts radians to degrees. | `(double) -> double` |
+| `deg2rad(d)` | Converts degrees to radians. | `(double) -> double` |
+| `sign(x)` | Returns the sign of `x` (`-1.0`, `0.0`, or `1.0`). | `(double) -> double` |
+| `is_close(a, b)` | Checks if `a` and `b` are within `1e-9`. | `(double, double) -> bool` |
+| `step(x)` | Unit step function (`0.0` if `x < 0.0`, else `1.0`). | `(double) -> double` |
+| `factorial(n)` | Computes the factorial of `n` recursively. | `(double) -> double` |
+| `gcd(a, b)` | Greatest common divisor using the Euclidean algorithm. | `(double, double) -> double` |
+| `lcm(a, b)` | Least common multiple. | `(double, double) -> double` |
+| `map_range(x, in_lo, in_hi, out_lo, out_hi)` | Remaps `x` from `[in_lo, in_hi]` to `[out_lo, out_hi]`. | `(double, double, double, double, double) -> double` |
+| `smoothstep(x)` | Cubic Hermite interpolation clamped to `[0.0, 1.0]`. | `(double) -> double` |
+| `round_to(x, n)` | Rounds `x` to `n` decimal places. | `(double, double) -> double` |
+| `frac(x)` | Fractional part of `x` (`x - floor(x)`). | `(double) -> double` |
+| `wrap(x, lo, hi)` | Wraps `x` into the `[lo, hi)` range. | `(double, double, double) -> double` |
+| `pingpong(x, lo, hi)` | Bounces `x` back and forth between `lo` and `hi`. | `(double, double, double) -> double` |
+| `inverse_lerp(x, a, b)` | Locates where `x` lies between `a` and `b`. | `(double, double, double) -> double` |
+| `sigmoid(x)` | Logistic sigmoid function: `1.0 / (1.0 + exp(-x))`. | `(double) -> double` |
+| `normalize_angle(x)` | Wraps angle `x` to the `[0, 2*pi)` range. | `(double) -> double` |
+| `normalize_angle_sym(x)` | Wraps angle `x` to the `[-pi, pi]` range. | `(double) -> double` |
+| `softplus(x)` | Smooth ReLU: `log(1.0 + exp(-abs(x))) + max(x, 0.0)`. | `(double) -> double` |
+| `clamp01(x)` | Clamps `x` to `[0.0, 1.0]`. | `(double) -> double` |
+| `relu(x)` | Rectified linear unit: `max(0.0, x)`. | `(double) -> double` |
+| `logit(x)` | Log-odds function: `log(x / (1.0 - x))`. | `(double) -> double` |
+| `avg(a, b)` | Arithmetic mean of two values. | `(double, double) -> double` |
+| `comb(n, k)` | Binomial coefficient `n choose k`. | `(double, double) -> double` |
+| `perm(n, k)` | Permutations `P(n, k) = n! / (n-k)!`. | `(double, double) -> double` |
+| `reflect(v, n)` | Reflects vector `v` about unit normal `n`. | `(double, double) -> double` |
+
+---
+
+## `trig.flux`
+
+Extended trigonometric and hyperbolic helper functions.
+
+| Function | Description | Signature |
+| :--- | :--- | :--- |
+| `sec(x)` | Secant: `1.0 / cos(x)`. | `(double) -> double` |
+| `csc(x)` | Cosecant: `1.0 / sin(x)`. | `(double) -> double` |
+| `cot(x)` | Cotangent: `cos(x) / sin(x)`. | `(double) -> double` |
+| `sinc(x)` | Unnormalized sinc: `sin(x) / x` (`1.0` at `0`). | `(double) -> double` |
+| `asec(x)` | Inverse secant: `acos(1.0 / x)`. | `(double) -> double` |
+| `acsc(x)` | Inverse cosecant: `asin(1.0 / x)`. | `(double) -> double` |
+| `acot(x)` | Inverse cotangent: `atan2(1.0, x)`. | `(double) -> double` |
+| `sech(x)` | Hyperbolic secant. | `(double) -> double` |
+| `csch(x)` | Hyperbolic cosecant. | `(double) -> double` |
+| `coth(x)` | Hyperbolic cotangent. | `(double) -> double` |
+| `degrees(r)` | Converts radians to degrees. | `(double) -> double` |
+| `radians(d)` | Converts degrees to radians. | `(double) -> double` |
+| `haversine(x)` | Haversine formula: `(1.0 - cos(x)) / 2.0`. | `(double) -> double` |
+| `vercosine(x)` | Vercosine: `(1.0 + cos(x)) / 2.0`. | `(double) -> double` |
+
+---
+
+## `array.flux`
+
+Array/matrix creation, manipulation, and numerical utilities.
+
+| Function | Description | Signature |
+| :--- | :--- | :--- |
+| `eye(n)` | n x n identity matrix. | `(double) -> matrix` |
+| `ones(r, c)` | r x c matrix of ones. | `(double, double) -> matrix` |
+| `sum(m)` | Sum of all matrix elements. | `(matrix) -> double` |
+| `mean(m)` | Arithmetic mean of matrix elements. | `(matrix) -> double` |
+| `linspace(start, stop, n)` | `n` evenly spaced values from `start` to `stop`. | `(double, double, double) -> matrix` |
+| `logspace(start, stop, n)` | `n` logarithmically spaced values from 10^start to 10^stop. | `(double, double, double) -> matrix` |
+| `arange(start, stop, step)`| Values from `start` to `stop` (exclusive) with `step` intervals. | `(double, double, double) -> matrix` |
+| `flatten(m)` | Flattens a matrix to a 1D column vector in row-major order. | `(matrix) -> matrix` |
+| `reshape(m, rows, cols)` | Reshapes a matrix to the specified dimensions. | `(matrix, double, double) -> matrix` |
+| `diff(m)` | Finite differences between adjacent elements. | `(matrix) -> matrix` |
+| `cumsum(m)` | Cumulative sum of elements. | `(matrix) -> matrix` |
+| `cumprod(m)` | Cumulative product of elements. | `(matrix) -> matrix` |
+| `argsort(m)` | Indices that would sort the matrix in ascending order. | `(matrix) -> matrix` |
+| `unique(m)` | Unique elements in order of first occurrence. | `(matrix) -> matrix` |
+| `pad_zeros(m, pad_r, pad_c)`| Pads matrix with zeros on each side. | `(matrix, double, double) -> matrix` |
+| `meshgrid(x, y)` | Coordinates grids from vector `x` and `y` grids. | `(matrix, matrix) -> matrix` |
+| `flipud(m)` | Flips matrix upside down. | `(matrix) -> matrix` |
+| `fliplr(m)` | Flips matrix left-to-right. | `(matrix) -> matrix` |
+| `rot90(m)` | Rotates matrix 90 degrees counter-clockwise. | `(matrix) -> matrix` |
+| `triu(m)` | Returns the upper triangular part of `m`. | `(matrix) -> matrix` |
+| `tril(m)` | Returns the lower triangular part of `m`. | `(matrix) -> matrix` |
+| `repmat(m, rep_r, rep_c)`| Replicates/tiles a matrix. | `(matrix, double, double) -> matrix` |
+| `trapz(x, y)` | Trapezoidal numerical integration. | `(matrix, matrix) -> double` |
+| `nonzero(m)` | Returns (k x 2) positions of non-zero elements. | `(matrix) -> matrix` |
+| `clip(m, lo, hi)` | Clamps every element of `m` to `[lo, hi]`. | `(matrix, double, double) -> matrix` |
+| `squeeze(m)` | Removes singleton dimensions. | `(matrix) -> matrix` |
+| `flip(m)` | Reverses element order in row-major. | `(matrix) -> matrix` |
+| `sort(m)` | Returns a sorted column vector of elements. | `(matrix) -> matrix` |
+| `replace(m, old, new)` | Replaces all occurrences of `old` with `new`. | `(matrix, double, double) -> matrix` |
+| `count_eq(m, val)` | Counts occurrences of `val` in the matrix. | `(matrix, double) -> double` |
+| `find_eq(m, val)` | Finds all (k x 2) index coordinates where elements equal `val`. | `(matrix, double) -> matrix` |
+
+---
+
+## `stats.flux`
+
+Statistical analysis functions operating on matrices.
+
+| Function | Description | Signature |
+| :--- | :--- | :--- |
+| `variance(m)` | Population variance of elements. | `(matrix) -> double` |
+| `std(m)` | Population standard deviation. | `(matrix) -> double` |
+| `geometric_mean(m)` | Geometric mean of positive elements. | `(matrix) -> double` |
+| `harmonic_mean(m)` | Harmonic mean of non-zero elements. | `(matrix) -> double` |
+| `cv(m)` | Coefficient of variation (`std / |mean|`). | `(matrix) -> double` |
+| `min_element(m)` | Smallest value in matrix. | `(matrix) -> double` |
+| `max_element(m)` | Largest value in matrix. | `(matrix) -> double` |
+| `median(m)` | Median value of elements. | `(matrix) -> double` |
+| `zscore(m)` | Standardizes matrix to zero mean, unit variance. | `(matrix) -> matrix` |
+| `entropy(p)` | Shannon entropy of probability distribution `p`. | `(matrix) -> double` |
+| `mad(m)` | Mean absolute deviation from the mean. | `(matrix) -> double` |
+| `rms(m)` | Root mean square. | `(matrix) -> double` |
+| `mode(m)` | Most frequent element value. | `(matrix) -> double` |
+| `iqr(m)` | Interquartile range (Q3 - Q1). | `(matrix) -> double` |
+| `moment(m, k)` | $k$-th central moment. | `(matrix, double) -> double` |
+| `normalize_minmax(m)` | Scales matrix to `[0, 1]` range. | `(matrix) -> matrix` |
+| `range_val(m)` | Range of element values (`max - min`). | `(matrix) -> double` |
+
+---
+
+## `signal.flux`
+
+Signal generation, windowing, and DSP functions.
+
+| Function | Description | Signature |
+| :--- | :--- | :--- |
+| `hann(n)` | Hann window of length `n`. | `(double) -> matrix` |
+| `hamming(n)` | Hamming window of length `n`. | `(double) -> matrix` |
+| `blackman(n)` | Blackman window of length `n`. | `(double) -> matrix` |
+| `bartlett(n)` | Bartlett (triangular) window of length `n`. | `(double) -> matrix` |
+| `square(t, duty)` | Square wave generator at normalized time `t` (period = 1). | `(double, double) -> double` |
+| `sawtooth(t)` | Sawtooth wave generator at normalized time `t` (period = 1). | `(double) -> double` |
+| `triangle(t)` | Triangle wave generator at normalized time `t` (period = 1). | `(double) -> double` |
+| `pulse_train(t, width)` | Pulse train generator at normalized time `t` (period = 1). | `(double, double) -> double` |
+| `chirp(t, f0, f1, t1)` | Linear chirp sweep from `f0` to `f1` over duration `t1`. | `(double, double, double, double) -> double` |
+| `fftfreq(n, d)` | NumPy-compatible FFT frequency bins. | `(double, double) -> matrix` |
+| `unwrap(phase)` | Unwraps radian phase discontinuities > pi. | `(matrix) -> matrix` |
+
+---
+
+## `string.flux`
+
+String manipulation utilities wrapping external C functions.
+
+| Function | Description | Signature |
+| :--- | :--- | :--- |
+| `len(s)` | String length in characters. | `(string) -> double` |
+| `at(s, i)` | Character at 0-indexed position `i`. | `(string, double) -> double` |
+| `cmp(a, b)` | String comparison (returns `-1`, `0`, or `1`). | `(string, string) -> double` |
+| `slice(s, start, cnt)`| Substring starting at `start` containing `cnt` characters. | `(string, double, double) -> string` |
+| `find(s, sub)` | Index of first occurrence of substring `sub` (`-1` if not found). | `(string, string) -> double` |
+| `regex(s, pat)` | Regex match verification. | `(string, string) -> double` |
+
+---
+
+## `cmatrix.flux`
+
+Complex matrix construction and utilities (using complex-valued elements).
+
+| Function | Description | Signature |
+| :--- | :--- | :--- |
+| `cmatrix(rows, cols)` | Create a zero-filled complex matrix. | `(double, double) -> matrix` |
+| `complex_eye(n)` | Identity complex matrix. | `(double) -> matrix` |
+| `complex_ones(rows, cols)`| Complex matrix of all ones. | `(double, double) -> matrix` |
+| `complex_zeros(rows, cols)`| Complex matrix of all zeros. | `(double, double) -> matrix` |
+| `ctranspose(m)` | Conjugate transpose (Hermitian transpose). | `(matrix) -> matrix` |
+| `conj(m)` | Element-wise complex conjugate. | `(matrix) -> matrix` |
+| `complex_transpose(m)`| Transpose (without conjugation). | `(matrix) -> matrix` |
+| `complex_inv(m)` | Inverse of a complex square matrix. | `(matrix) -> matrix` |
+| `complex_det(m)` | Determinant magnitude of complex square matrix. | `(matrix) -> double` |
+| `complex_trace(m)` | Sum of diagonal real parts. | `(matrix) -> double` |
+| `cmatrix_get(mat, row, col)`| Get element at `(row, col)` as complex. | `(matrix, double, double) -> complex` |
+| `cmatrix_set_ri(mat, row, col, real, imag)`| Set element at `(row, col)` with real/imag parts. | `(matrix, double, double, double, double) -> void` |
+| `rows(m)` | Number of rows of complex matrix. | `(matrix) -> double` |
+| `cols(m)` | Number of columns of complex matrix. | `(matrix) -> double` |
+
+---
+
+## Built-in Functions
+
+FluxScript provides compiler-injected built-in math and matrix functions that do not require any imports.
+
+### Math Intrinsics
+Double-precision intrinsic operations available globally:
+
+- Trigonometric: `sin(x)`, `cos(x)`, `tan(x)`, `asin(x)`, `acos(x)`, `atan(x)`, `atan2(y, x)`
+- Hyperbolic: `sinh(x)`, `cosh(x)`, `tanh(x)`
+- Exponential/Log: `sqrt(x)`, `exp(x)`, `log(x)`, `log10(x)`, `pow(base, exp)`
+- Rounding/Numeric: `abs(x)`, `floor(x)`, `ceil(x)`, `round(x)`
+- Constants: `pi()`, `e()`
+
+### Matrix Operations
+High-performance matrix/vector functions:
+
+- `det(m)`: Determinant of a real matrix.
+- `inv(m)`: Inverse of a real square matrix.
+- `eig(m)`: Eigenvalues/eigenvectors decomposition.
+- `dot(a, b)`: Dot product of two vectors.
+- `cross(a, b)`: Cross product of two 3D vectors.
+- `norm(v)`: Frobenius/Euclidean norm of matrix or vector.
+
+Matrix creation functions:
+- `matrix_zeros(rows, cols)`: Creates a zero-initialized matrix of double-precision elements. (Note: `zeros` is a reserved SPICE keyword, so this built-in is used instead).
+- `matrix_ones(rows, cols)`: Creates a matrix initialized to ones.
+- `matrix_eye(n)`: Creates an $n \times n$ identity matrix.
+- `matrix_copy(m)`: Creates a deep copy of matrix `m`.
+
+### Member Functions and Operators
+- **Transpose Operator (`'`)**: Appending a single quote to a matrix transposes it (e.g. `A'`).
+- **Element-wise Operators (`.+`, `.-`, `.*`, `./`, `.^`)**: Perform mathematical operations element-by-element across matrices of matching shapes.
+
+### Neural Network Built-ins
+Built-in AI/ML primitives (exposed directly from the runtime):
+- `flux_nn_create(layers: matrix, learning_rate: double) -> double`: Creates a neural network with the specified layers configuration.
+- `flux_nn_train(model: double, inputs: matrix, outputs: matrix, epochs: double) -> void`: Trains the network.
+- `flux_nn_predict(model: double, inputs: matrix) -> matrix`: Evaluates predictions on the network.
+
+---
+
+## Importing Modules
+
+Use the `use` keyword to import standard modules:
+
+```fluxscript
+use math
+use trig
+use array
+use stats
+use signal
+use string
+use cmatrix
+```

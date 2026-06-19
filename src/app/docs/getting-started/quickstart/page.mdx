@@ -1,0 +1,57 @@
+# Quick Start
+
+This guide gets you running your first AVR simulation and mixed-signal co-simulation in under five minutes. It assumes VioAVR and VioMATRIXC are already installed.
+
+## 1. Build VioAVR
+
+If you have not built VioAVR yet, clone and build it with the release preset:
+
+```bash
+git clone https://github.com/Janadasroor/VioAVR.git
+cd VioAVR
+cmake -B build --preset release
+cmake --build build -j8
+sudo cmake --install build
+```
+
+## 2. Run a Test Firmware
+
+Flash a pre-built HEX file into the simulator and run it for a limited cycle count:
+
+```bash
+vioavr-cli --mcu atmega328p --flash firmware.hex --trace --max-cycles 100000
+```
+
+The `--trace` flag emits a line of output per instruction, which is useful for verifying that your firmware is executing as expected. Remove it for long-running simulations.
+
+To attach a GDB debugger instead, start VioAVR with the GDB stub enabled and connect from a second terminal:
+
+```bash
+# Terminal 1: start the simulator and wait for GDB
+vioavr-cli --mcu atmega328p --flash firmware.elf --gdb-port 3333 --gdb-wait
+
+# Terminal 2: connect GDB
+avr-gdb firmware.elf
+(gdb) target remote localhost:3333
+(gdb) break main
+(gdb) continue
+```
+
+## 3. Co-Simulate with ngspice
+
+VioAVR can run inside an ngspice or VioMATRIXC simulation session via the `d_cosim` XSPICE code model. The AVR and the analog circuit advance in lock-step, exchanging digital I/O and analog values through shared memory.
+
+The `adc_demo` example ships with the VioAVR repository. Run it with:
+
+```bash
+cd scratch/adc_demo
+ngspice -b circuit.cir
+```
+
+The netlist includes an ADC bridge that routes an analog voltage from the SPICE circuit into the AVR's ADC channel, and the AVR's PWM output drives a load resistor in the analog domain.
+
+## Next Steps
+
+- [VioAVR Overview](/docs/vioavr) — Architecture, peripheral reference, JIT compiler, and GDB stub details
+- [Co-simulation Guide](/docs/vioavr/cosimulation) — Full reference for the `d_cosim` code model and analog bridge models
+- [CLI Reference](/docs/vioavr/cli) — All `vioavr-cli` flags and the bridge daemon

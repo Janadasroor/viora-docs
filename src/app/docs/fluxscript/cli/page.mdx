@@ -1,0 +1,296 @@
+# CLI Tools
+
+FluxScript includes command-line executables covering compilation, execution, package management, circuit simulation, analysis, and developer tooling.
+
+---
+
+## `flux` — Main JIT CLI
+
+The primary JIT interpreter and compiler driver.
+
+```bash
+# Execute a script using the default LLVM JIT
+flux script.flux
+
+# Emit compiler diagnostics or intermediate representations
+flux --emit=tokens script.flux       # Tokens list
+flux --emit=check script.flux        # Type-checked AST (without run)
+flux --emit=llvm script.flux         # LLVM IR assembly
+flux --emit=bc -o output.bc script.flux # LLVM binary bitcode
+flux --emit=mlir script.flux         # MLIR representation
+
+# Profile and benchmark compilation and execution
+flux --profile --iterations=100 script.flux
+
+# Disable disk caching
+flux --cache=0 script.flux
+```
+
+---
+
+## `fluxc` — Ahead-of-Time Compiler
+
+Compiles FluxScript source files directly to native object files or shared libraries.
+
+```bash
+# Compile to a static object file
+fluxc module.flux -o module.o
+
+# Compile to a shared library (DLL / shared object)
+fluxc module.flux -o libmodule.so --shared
+
+# Compile with optimization level (O0 through O3)
+fluxc script.flux -o script.o --opt=3
+
+# Emit debug symbols
+fluxc script.flux -o script.o --debug
+
+# Multi-threaded compilation (parallel codegen jobs)
+fluxc script.flux -o script.o -j 8
+```
+
+---
+
+## `flux-repl` — Interactive REPL
+
+Interactive read-eval-print loop with cache support.
+
+```text
+$ flux-repl
+FluxScript REPL
+Commands: :help  :quit  :load <file>  :cache on|off
+
+flux> 2 + 3
+5
+flux> :cache on
+cache enabled
+flux> :load test.flux
+loaded test.flux (cache miss)
+flux> :quit
+```
+
+---
+
+## `flux-pkg` — Package Manager
+
+TOML-based package manager.
+
+```bash
+# Search for packages in the registry
+flux-pkg search dsp
+
+# Install packages
+flux-pkg install dsp-library
+flux-pkg install dsp-library 1.2.0
+
+# Uninstall a package
+flux-pkg uninstall dsp-library
+
+# Update installed packages
+flux-pkg update
+
+# List installed packages
+flux-pkg list
+
+# Display package information
+flux-pkg info dsp-library
+
+# Repository management
+flux-pkg repo add my-repo https://packages.example.com
+flux-pkg repo list
+flux-pkg repo remove my-repo
+```
+
+---
+
+## `flux-spice` — SPICE Integration
+
+Generates SPICE netlists from FluxScript circuit descriptions and runs simulations.
+
+```bash
+# Generate SPICE netlist
+flux-spice circuit.flux --netlist
+
+# Run simulation using ngspice
+flux-spice --run circuit.flux
+
+# Export simulation results to a CSV file
+flux-spice --run --output results.csv circuit.flux
+
+# Specify transient parameters
+flux-spice --run --tran 1u 1m circuit.flux
+```
+
+---
+
+## `flux-run` — Script Execution with ngspice
+
+Executes FluxScript files with direct ngspice simulation integration and outputs ASCII waveform plots.
+
+```bash
+# Run simulation script
+flux-run circuit.flux
+
+# Run simulation and export results to a CSV file
+flux-run circuit.flux --export data.csv
+```
+
+---
+
+## `flux-doctor` — AI Circuit Doctor
+
+Diagnoses circuit warnings and errors based on analytical rules.
+
+```bash
+# Run diagnostics on a circuit description
+flux-doctor circuit.flux
+
+# Run and filter by minimum severity (info, warning, error)
+flux-doctor circuit.flux --severity warning
+
+# Output in JSON or Markdown format
+flux-doctor circuit.flux --format json
+flux-doctor circuit.flux --format markdown
+```
+
+---
+
+## `flux-sweep` — Parametric Sweep
+
+Sweeps a component value and records the outputs.
+
+```bash
+# Sweep resistor R1 from 1k to 10k across 20 steps
+flux-sweep circuit.flux --component R1 --start 1000 --stop 10000 --points 20
+```
+
+---
+
+## `flux-fft` — FFT Analyzer
+
+Performs Fast Fourier Transform analysis on CSV signal data.
+
+```bash
+# Analyze a CSV file containing columns Time,Value
+flux-fft data.csv
+
+# Specify sample rate in Hz
+flux-fft data.csv --rate 2000
+
+# Apply windowing function (e.g. hanning)
+flux-fft data.csv --window hanning
+
+# Display an ASCII plot of the spectrum
+flux-fft data.csv --plot ascii
+```
+
+---
+
+## `flux-lsp` — Language Server
+
+Implements LSP (3.17) over stdio for editor completions, go-to-definition, hover docs, and diagnostics.
+
+```bash
+# Launch server over stdio
+flux-lsp --stdio
+```
+
+---
+
+## `flux-format` — Code Formatter
+
+Formats FluxScript source code and writes the formatted result to stdout.
+
+```bash
+# Format file and output to stdout
+flux-format script.flux
+
+# Format from stdin
+cat script.flux | flux-format
+```
+
+---
+
+## `flux-doc` — Documentation Generator
+
+Extracts comments and generates Markdown documentation sent to stdout.
+
+```bash
+# Generate documentation for a module
+flux-doc library.flux > README.md
+```
+
+---
+
+## `flux-test` — Test Runner
+
+Discovers and runs inline tests embedded as comments matching the pattern `# TEST: expr => expected`.
+
+```bash
+# Run tests inside a file
+flux-test math_test.flux
+
+# Run with JIT optimization level
+flux-test math_test.flux --opt=3
+```
+
+---
+
+## `flux-instrument` — Lab Instrument Control
+
+Controls SCPI laboratory instruments over TCP sockets.
+
+```bash
+# Connect and send a raw query (e.g. identify instrument)
+flux-instrument 192.168.1.100 "*IDN?"
+
+# Set power supply voltage
+flux-instrument 192.168.1.100 --ps --set-volt 3.3
+
+# Measure current voltage and current from power supply
+flux-instrument 192.168.1.100 --ps --measure
+```
+
+---
+
+## `flux-optimize` — Circuit Optimizer
+
+Optimizes circuit components to match weighted target goals.
+
+```bash
+# Optimize resistor and capacitor to match a target cutoff
+flux-optimize filter.flux --var Rval:10k:1k:100k --var Cval:1n:100p:10n --target cutoff=1000:1.0
+```
+
+---
+
+## `flux-worstcase` — Worst-Case Analysis
+
+Runs corner analysis based on tolerances.
+
+```bash
+# Analyze corners of R1 and R2 to check limits
+flux-worstcase circuit.flux --param R1:10000:100 --param R2:20000:200 --spec 4.5:5.5
+```
+
+---
+
+## `flux-stability` — Stability Analysis
+
+Computes circuit margins (phase margin, gain margin, and bandwidth) and outputs a markdown report.
+
+```bash
+# Analyze stability margins
+flux-stability circuit.flux
+```
+
+---
+
+## `flux-monte-carlo` — Monte Carlo Analysis
+
+Runs statistical tolerance analyses using randomized variables.
+
+```bash
+# Run 500 Monte Carlo runs and check spec limits
+flux-monte-carlo circuit.flux --param R1:10000:100 --spec 4.5:5.5 --iterations 500
+```

@@ -1,0 +1,189 @@
+# FluxScript
+
+FluxScript is a high-performance, JIT-compiled scripting language purpose-built for circuit simulation and electronic design automation. It combines the expressiveness of a modern programming language with compile-time physical-unit safety, enabling engineers to write simulation code that is both concise and rigorously correct.
+
+## Core Language Features
+
+### Compile-Time SI Unit Dimensional Analysis
+
+FluxScript enforces dimensional correctness at compile time through a 7-dimensional type system. Every quantity carries units across the seven SI base dimensions: mass, length, time, electric current, thermodynamic temperature, amount of substance, and luminous intensity. Mismatched units produce compile-time errors, eliminating an entire class of bugs before any code runs.
+
+```fluxscript
+voltage    := 3.3V
+resistance := 10kOhm
+current    := voltage / resistance  // OK: 330 µA
+
+power := voltage + resistance       // Compile error: V + Ω is dimensionally invalid
+```
+
+The system supports the full SI metric prefix range (atto through exa) and recognizes compound units including Ohm, Henry, Farad, Siemens, and Weber. User-defined units can be declared with the `unit` keyword.
+
+### LLVM ORC JIT Compilation
+
+FluxScript uses LLVM's On-Request Compilation (ORC) JIT infrastructure to compile scripts to native machine code at runtime. A tiered compilation strategy balances startup latency against peak throughput:
+
+| Tier | Optimization | Description |
+|---|---|---|
+| **Tier 0 (O0)** | None | Fast bytecode interpretation for immediate execution during development |
+| **Tier 1 (O2)** | Standard | Background recompilation with common optimization passes once hot functions are identified by profiling |
+| **Tier 2 (O3)** | Aggressive | Full optimization including loop unrolling, vectorization, and inlining for sustained workloads |
+
+### Profile-Guided Optimization
+
+During execution, FluxScript collects profiling data — branch frequencies, call counts, and memory access patterns — and feeds it back into the JIT to guide inlining decisions, branch prediction hints, and register allocation. For long-running simulations, PGO typically yields 15–40% throughput improvements over unguided compilation.
+
+### SIMD Vectorization
+
+The compiler automatically vectorizes element-wise operations on arrays and matrices, emitting AVX2/AVX-512 instructions on x86_64 and NEON on ARM64. Explicit SIMD intrinsics are available via the `@simd` pragma for performance-critical inner loops.
+
+### C++ JIT Compiler
+
+The FluxScript compiler and JIT execution engine are written in C++17, built on top of LLVM's On-Request Compilation (ORC) infrastructure. The compiler parses source code, performs static type validation and unit safety checking, and generates LLVM IR that is compiled directly to machine code in memory for high-performance execution.
+
+---
+
+## Toolchain
+
+FluxScript ships with 18 CLI executables:
+
+| Tool | Description |
+|---|---|
+| `flux` | Main CLI: JIT execution with multiple emit modes (AST, LLVM IR, object, native) |
+| `fluxc` | Ahead-of-time compiler producing shared libraries and object files |
+| `flux-repl` | Interactive REPL with session persistence and result caching |
+| `flux-pkg` | Package manager with repository and registry support |
+| `flux-lsp` | Language Server Protocol implementation (LSP 3.17) |
+| `flux-spice` | SPICE netlist generation and simulation bridge |
+| `flux-run` | Script execution with ngspice integration |
+| `flux-doctor` | Circuit debugging and diagnostic analysis |
+| `flux-sweep` | Parametric sweep automation |
+| `flux-fft` | FFT analysis tooling |
+| `flux-format` | Code formatter with configurable style rules |
+| `flux-doc` | Documentation generator producing Markdown output |
+| `flux-test` | Test runner with an assertion framework |
+| `flux-instrument` | Lab instrument control via SCPI over TCP |
+| `flux-optimize` | Circuit optimization engine |
+| `flux-worstcase` | Worst-case analysis over component tolerance bounds |
+| `flux-stability` | Stability analysis (Bode, Nyquist, gain/phase margin) |
+| `flux-monte-carlo` | Monte Carlo and yield analysis |
+
+---
+
+## Examples
+
+FluxScript ships with a rich set of examples demonstrating its capabilities across different domains. All examples are standalone projects.
+
+### FullCircuit — MNA Circuit Simulator
+
+The flagship example: a complete Modified Nodal Analysis (MNA) circuit simulator written entirely in FluxScript. Supports DC, transient, and AC small-signal analysis with nonlinear device models (diode, BJT, MOSFET).
+
+```
+examples/fullcircuit/
+├── circuit.flux       # Data structures & netlist builder API
+├── mna.flux           # MNA matrix stamping & linear DC solve
+├── dcsolve.flux       # Nonlinear DC (Newton-Raphson)
+├── trsim.flux         # Transient (time-domain) analysis
+├── acswp.flux         # AC small-signal frequency sweep
+├── analysis.flux      # Sensitivity, Monte Carlo, noise, THD
+└── demos/run.flux     # 6 test circuits: voltage divider, RC, RLC,
+                       # Wheatstone bridge, op-amp, VCVS
+```
+
+```bash
+cd examples/fullcircuit
+flux demos/run.flux
+```
+
+### Raytracer
+
+A physically-based ray tracer with `Vec3` struct, scene rendering, and pixel-pipe accumulation. Demonstrates structs, methods, and floating-point computation.
+
+```bash
+cd examples/raytracer/demos && flux run.flux
+```
+
+### Mandelbrot Fractal
+
+A Mandelbrot set renderer showcasing nested loops, complex number arithmetic, and character-based rendering.
+
+```bash
+cd examples/mandelbrot && flux demos/fractal.flux
+```
+
+### Conway's Game of Life
+
+A cellular automaton simulation demonstrating array manipulation, grid operations, and iterative computation.
+
+```bash
+cd examples/game_of_life && flux demos/life.flux
+```
+
+### MNA Example
+
+A simplified standalone MNA solver, suitable for learning the basics of circuit simulation in FluxScript before exploring `FullCircuit`.
+
+```bash
+cd examples/mna && flux demos/mna.flux
+```
+
+### Other Examples
+
+| Directory | Contents |
+|---|---|
+| `examples/spice/` | SPICE netlist parsing |
+| `examples/math/` | Math utilities and string operations |
+| `examples/json_explorer/` | JSON type system and data explorer |
+
+---
+
+## Qt GUI Bridge (`fluxqt`)
+
+The `fluxqt` module provides a bridge between FluxScript and Qt, enabling fully scripted graphical user interfaces. It registers approximately 195 global functions prefixed with `flux_qt_` covering widget creation, layout management, signal/slot connections, and rendering. A standalone runner `fluxqt` is available that executes scripts and supports automatic hot-reload with a 500 ms polling interval, enabling rapid UI iteration without restarting the application.
+
+This is a separate integration module — not part of the FluxScript core — that demonstrates how FluxScript can be embedded in larger Qt applications. VioraEDA uses it to power its scripting-driven extension panels.
+
+Key capabilities:
+
+- Full widget set: buttons, labels, sliders, spin boxes, text edits, combo boxes, and more (e.g. `flux_qt_create_button`, `flux_qt_create_lcd`)
+- Layout managers: VBox, HBox, and Grid layouts (e.g. `flux_qt_create_layout("vbox")`, `flux_qt_layout_add_widget`)
+- Custom pixel-by-pixel image rendering (e.g. `flux_qt_put_pixel`, `flux_qt_render_image`)
+- Chart and plot operations for simulation data visualization (`flux_qt_create_chartview`, `flux_qt_xy_series_scroll`)
+- OpenGL widget support for hardware-accelerated custom rendering (`flux_qt_create_opengl_widget`)
+- Multi-window and dock widget support for complex application layouts
+
+---
+
+## Extensibility
+
+### C++ Plugin System
+
+FluxScript supports native C++ plugins that expose high-performance functions to FluxScript code. Plugins implement four standard entry points: `plugin_name()`, `plugin_version()`, `plugin_init()`, and `plugin_register_functions()`. Pre-built plugins include optimized math functions (`fast_sin`, `fast_inv_sqrt`), DSP primitives (`smoothstep`, `bessel_j0`), and custom hardware acceleration routines.
+
+### VS Code Extension
+
+The `flux-lsp-vscode` extension provides syntax highlighting, language configuration, and full LSP integration for Visual Studio Code, including autocompletion, go-to-definition, hover documentation, and real-time diagnostics.
+
+### Package Manager
+
+The TOML-based package manager (`flux-pkg`) handles dependency resolution, repository management, and package publishing. It supports private registries and integrates with the LSP for automatic package discovery in the editor.
+
+---
+
+## Platform Support
+
+| Platform | Status |
+|---|---|
+| **Linux** | Primary development platform; full feature support |
+| **macOS** | Native ARM64 (Apple Silicon) and x86_64 |
+| **Windows** | MSVC and MinGW-w64 toolchain support |
+| **Android** | Cross-compilation for on-device simulation (used by VspiceDroid) |
+
+---
+
+## Next Steps
+
+- [Language Reference](/docs/fluxscript/language) — Complete language specification
+- [Standard Library](/docs/fluxscript/stdlib) — Math, signal processing, and array APIs
+- [CLI Tools](/docs/fluxscript/cli) — All 18 executables documented
+- [Qt GUI Bridge](/docs/fluxscript/qt) — Building graphical interfaces with FluxScript
+- [Extensions & Plugins](/docs/fluxscript/plugins) — Extending FluxScript with C++ plugins

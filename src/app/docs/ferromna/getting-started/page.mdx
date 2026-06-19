@@ -1,0 +1,172 @@
+# Getting Started with FerroMNA
+
+This guide covers installation, prerequisites, and your first simulation. FerroMNA is distributed as a Cargo crate and compiles to a single self-contained binary with no external runtime dependencies.
+
+## Prerequisites
+
+### Rust
+
+Install Rust 1.82 or later via [rustup](https://rustup.rs/):
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+### BLAS / LAPACK
+
+FerroMNA's sparse solver (`faer`) links against BLAS and LAPACK for dense linear algebra routines. Install them before building:
+
+**Ubuntu / Debian:**
+```bash
+sudo apt install build-essential liblapack-dev libblas-dev
+```
+
+**macOS:**
+```bash
+brew install lapack blas
+```
+
+**Windows:** BLAS and LAPACK are typically provided by the Rust toolchain's bundled MSVC runtime. No separate installation is needed in most cases.
+
+---
+
+## Install from Source
+
+```bash
+git clone https://github.com/ferromna/ferromna.git
+cd ferromna
+cargo build --release
+```
+
+The compiled binary will be at `target/release/ferromna`. Copy it to a directory on your `PATH`:
+
+```bash
+sudo cp target/release/ferromna /usr/local/bin/
+```
+
+---
+
+## Your First Simulation
+
+Create a minimal netlist file:
+
+```spice
+* Voltage Divider
+V1 in 0 DC 5
+R1 in out 1k
+R2 out 0 1k
+.op
+.end
+```
+
+Run it:
+
+```bash
+ferromna test.sp
+```
+
+FerroMNA will compute the DC operating point and print the node voltages to the terminal. The output node `out` should read 2.5 V.
+
+---
+
+## Run the Example Circuits
+
+FerroMNA ships with 120+ ready-to-run example circuits. The examples cover common topologies across analog, digital, RF, and power domains:
+
+```bash
+# BJT differential pair (transient)
+ferromna examples/bjt_diff_pair.sp
+
+# MOSFET common-source amplifier (AC)
+ferromna examples/mos_level3_cs_amp.sp
+
+# RC low-pass filter (AC + transient)
+ferromna examples/passive_rc_2stage_ac.sp
+
+# Digital counter with DAC output (mixed-signal)
+ferromna examples/counter_dac_rc.sp
+
+# Boost converter (transient with VDMOS)
+ferromna examples/vdmos_boost_converter.sp
+```
+
+---
+
+## Using the GUI
+
+The `gui` command launches FerroScope, an egui-based interactive oscilloscope and netlist editor:
+
+```bash
+ferromna gui                           # Open with an empty workspace
+ferromna gui examples/bjt_diff_pair.sp  # Open with a pre-loaded circuit
+```
+
+The GUI provides real-time waveform display, dual cursors with delta measurements, interactive component controls (potentiometers, switches), and WAV/CSV export.
+
+---
+
+## Using the REPL
+
+The interactive REPL is useful for exploring a circuit incrementally without editing files:
+
+```bash
+ferromna repl examples/bjt_diff_pair.sp
+ferromna> .tran 1u 1m
+ferromna> plot V(out)
+ferromna> .print V(out) V(in)
+ferromna> .op
+ferromna> .quit
+```
+
+Tab completion is supported for commands, node names, and `V(nodename)` expressions.
+
+---
+
+## Using FerroMNA as a Rust Library
+
+FerroMNA can be embedded in Rust applications via its public API:
+
+```rust
+use ferromna::prelude::*;
+
+let mut circuit = Circuit::new();
+let n1 = circuit.add_node("1");
+circuit.add_component("V1", ComponentType::VoltageSource {
+    params: VoltageSourceParams::dc(5.0),
+}, vec![n1, 0]);
+circuit.add_component("R1", ComponentType::Resistor {
+    params: ResistorParams::linear(1000.0),
+}, vec![n1, 0]);
+
+let solver = EnhancedNRSolver::new();
+let res = solver.solve(&circuit).expect("Solver converged");
+println!("V(1) = {:.4} V", res.solution[(0, 0)]);
+```
+
+---
+
+## Output Formats
+
+FerroMNA can write simulation results in several formats:
+
+```bash
+# CSV (default)
+ferromna sim circuit.sp -o results.csv
+
+# ngspice-compatible binary raw file
+ferromna sim circuit.sp -F raw -o results.raw
+
+# Gnuplot-compatible DAT file
+ferromna sim circuit.sp -F dat -o results.dat
+
+# 16-bit PCM WAV from a transient waveform
+ferromna sim circuit.sp --wav-output audio.wav --wav-node out
+```
+
+---
+
+## Next Steps
+
+- [Features](/docs/ferromna/features) — Complete reference for all 16 analysis types and 43+ device models
+- [CLI Reference](/docs/ferromna/cli) — Full command documentation with all flags
+- [Examples](https://github.com/ferromna/ferromna/tree/master/examples) — 120+ runnable circuits

@@ -1,0 +1,310 @@
+# Qt GUI Bridge (`fluxqt`)
+
+The `fluxqt` module provides a comprehensive bridge between FluxScript and Qt, enabling engineers to build graphical user interfaces for circuit simulation tools, dashboards, and data visualization applications directly from FluxScript code.
+
+---
+
+## Architecture
+
+All Qt GUI operations are implemented via global functions prefixed with `flux_qt_` that communicate with a singleton C++ execution bridge. Rather than using direct namespaced binding objects (like `fluxqt.create_button`), FluxScript functions are called globally. 
+
+State values (such as widget handles) are double-precision floats that serve as indices into the bridge registry. To store and retrieve widgets across callbacks, global variables can be stored using `flux_set_var(key, handle)` and retrieved with `flux_get_var(key)`.
+
+---
+
+## Widget Creation and Management
+
+The bridge supports a broad range of standard Qt widgets:
+
+### Basic Widgets
+
+```fluxscript
+// Create a main window
+let win = flux_qt_create_mainwindow("FluxScript Code Editor")
+flux_qt_set_window_size(win, 680, 520)
+
+// Create a push button
+let btn = flux_qt_create_button("Click Me")
+
+// Create a text label
+let label = flux_qt_create_label("Hello, FluxScript!")
+
+// Create a text editor
+let editor = flux_qt_create_textedit()
+flux_qt_set_text(editor, "Initial content")
+
+// Create a checkbox
+let check = flux_qt_create_checkbox("Enable feature")
+
+// Create a combobox
+let combo = flux_qt_create_combobox()
+flux_qt_combo_add_item(combo, "Option A")
+flux_qt_combo_add_item(combo, "Option B")
+```
+
+### Numeric Widgets
+
+```fluxscript
+// Slider widget
+let slider = flux_qt_create_slider()
+
+// LCD number display
+let lcd = flux_qt_create_lcd()
+flux_qt_lcd_display(lcd, 3.1415)
+
+// Progress bar
+let prog = flux_qt_create_progressbar()
+flux_qt_progress_set_range(prog, 0, 100)
+flux_qt_progress_set_value(prog, 50.0)
+
+// Dial widget
+let dial = flux_qt_create_dial()
+```
+
+### Container Widgets
+
+```fluxscript
+// Group Box
+let group = flux_qt_create_groupbox("Settings")
+
+// Tab Widget
+let tabs = flux_qt_create_tabwidget()
+flux_qt_tab_add(tabs, "Tab 1", widget1)
+flux_qt_tab_add(tabs, "Tab 2", widget2)
+
+// Splitter widget
+let splitter = flux_qt_create_splitter()
+flux_qt_splitter_add(splitter, widget1)
+
+// Scroll Area
+let scroll = flux_qt_create_scrollarea()
+flux_qt_scroll_set_widget(scroll, widget)
+
+// Stacked Widget
+let stack = flux_qt_create_stackedwidget()
+flux_qt_stacked_add(stack, page1)
+flux_qt_stacked_set_current(stack, 0)
+```
+
+---
+
+## Layout Handling
+
+Widgets are arranged using layout managers. Layouts are created by name (`"vbox"` or `"hbox"`) and added to containers:
+
+### Vertical & Horizontal Box Layouts
+
+```fluxscript
+let central = flux_qt_create_widget()
+let lay = flux_qt_create_layout("vbox")
+
+let btn = flux_qt_create_button("Submit")
+let editor = flux_qt_create_textedit()
+
+// Add widgets to layout
+flux_qt_layout_add_widget(lay, editor)
+flux_qt_layout_add_widget(lay, btn)
+
+// Set layout on the container widget
+flux_qt_set_layout(central, lay)
+```
+
+### Grid Layouts
+
+For grid layout configurations, use the grid specific positioning function:
+
+```fluxscript
+let grid = flux_qt_create_layout("grid")
+flux_qt_grid_add_widget(grid, label1, 0, 0, 1, 1)  // row, col, rowSpan, colSpan
+flux_qt_grid_add_widget(grid, editor1, 0, 1, 1, 1)
+```
+
+---
+
+## Signal/Slot Connections
+
+Signals and user events are bound to global callbacks by referencing the callback's name as a string:
+
+```fluxscript
+// Callback definition in global scope
+def on_btn_clicked() {
+    print("Button clicked!")
+    0.0
+}
+
+def main() {
+    let btn = flux_qt_create_button("Run")
+    // Bind to on_btn_clicked
+    flux_qt_on_click_by_name(btn, "on_btn_clicked")
+    0.0
+}
+```
+
+Other event bindings include:
+- `flux_qt_on_value_changed_by_name(slider, "callback")`
+- `flux_qt_on_current_index_changed_by_name(combobox, "callback")`
+- `flux_qt_on_toggled_by_name(checkbox, "callback")`
+- `flux_qt_on_text_changed_by_name(lineedit, "callback")`
+- `flux_qt_on_current_row_changed_by_name(listwidget, "callback")`
+
+---
+
+## Timer Operations
+
+Timers trigger a callback function at periodic millisecond intervals:
+
+```fluxscript
+def on_tick() {
+    // Perform updates
+    0.0
+}
+
+def main() {
+    let tmr = flux_qt_create_timer(100.0, "on_tick") // 100 ms
+    flux_qt_timer_start(tmr)
+    0.0
+}
+```
+
+---
+
+## Custom Image Rendering (Pixel Accumulation)
+
+For custom painting, pixels are painted color by color onto a buffer using `flux_qt_put_pixel`, then rendered directly onto a target label widget:
+
+```fluxscript
+def render_custom_pattern(label_widget) {
+    let w = 300.0
+    let h = 200.0
+    var y = 0.0
+    while (y < h) {
+        var x = 0.0
+        while (x < w) {
+            // Compute RGB color channels between 0.0 and 1.0
+            let r = x / w
+            let g = y / h
+            let b = 0.5
+            flux_qt_put_pixel(r, g, b)
+            x = x + 1.0
+        }
+        y = y + 1.0
+    }
+    // Paint the accumulated pixel buffer on the target QLabel
+    flux_qt_render_image(label_widget, w, h)
+}
+```
+
+---
+
+## Chart and Plot Operations
+
+Data visualization uses built-in support for Qt Charts:
+
+```fluxscript
+// Create a chart view
+let cv = flux_qt_create_chartview()
+flux_qt_chart_set_title(cv, "Bode Plot")
+flux_qt_chart_set_background(cv, 20, 20, 25)
+
+// Create a series and append values
+let s = flux_qt_chart_add_line_series(cv, "Gain (dB)")
+flux_qt_xy_series_set_pen(s, 0, 200, 255, 2.0) // R, G, B, width
+
+// Append coordinate points
+flux_qt_xy_series_append(s, 10.0, 20.0)
+flux_qt_xy_series_append(s, 100.0, 15.0)
+
+// Define axes
+let xa = flux_qt_chart_add_axis(cv, 1.0) // 1.0 = X axis
+let ya = flux_qt_chart_add_axis(cv, 2.0) // 2.0 = Y axis
+flux_qt_axis_set_range(xa, 1.0, 1000.0)
+flux_qt_axis_set_range(ya, -10.0, 30.0)
+
+// Attach series to axes
+flux_qt_series_attach_axis(s, xa)
+flux_qt_series_attach_axis(s, ya)
+```
+
+---
+
+## OpenGL Widget
+
+For hardware-accelerated rendering, the OpenGL widget sets callback functions that execute when the widget is initialized, painted, or resized:
+
+```fluxscript
+let gl = flux_qt_create_opengl_widget(800, 600)
+flux_qt_opengl_set_initialize_callback(gl, "on_gl_init")
+flux_qt_opengl_set_paint_callback(gl, "on_gl_paint")
+flux_qt_opengl_set_resize_callback(gl, "on_gl_resize")
+flux_qt_opengl_set_auto_update(gl, 60.0) // update at 60 FPS
+```
+
+---
+
+## Complete Examples
+
+### Code Editor
+
+A functional editor that reads text from a `textedit` field, evaluates it in the JIT compiler, and prints the result:
+
+```fluxscript
+# ── Global keys ──────────────────────────────────────────────────────────────
+def K_EDIT() 1.0
+def K_OUT()  2.0
+
+# ── Callbacks ────────────────────────────────────────────────────────────────
+def on_run() {
+  let src = flux_qt_get_text(flux_get_var(K_EDIT()))
+  let result = flux_qt_eval(src)
+  flux_qt_set_text(flux_get_var(K_OUT()), result)
+  0.0
+}
+
+def on_clear() {
+  flux_qt_set_text(flux_get_var(K_OUT()), "")
+  0.0
+}
+
+# ── Main ─────────────────────────────────────────────────────────────────────
+def main() {
+  flux_qt_set_app_icon("flux.svg")
+
+  let win = flux_qt_create_mainwindow("FluxScript Code Editor")
+  flux_qt_set_window_size(win, 680, 520)
+
+  let central = flux_qt_create_widget()
+  let lay = flux_qt_create_layout("vbox")
+  flux_qt_set_layout(central, lay)
+  flux_qt_set_central_widget(win, central)
+
+  # Toolbar buttons
+  let tool = flux_qt_create_layout("hbox")
+  let btn_run = flux_qt_create_button("Run (F5)")
+  let btn_clr = flux_qt_create_button("Clear Output")
+
+  flux_qt_layout_add_widget(tool, btn_run)
+  flux_qt_layout_add_widget(tool, btn_clr)
+  flux_qt_layout_add_widget(lay, tool)
+
+  # Editor area
+  let editor = flux_qt_create_textedit()
+  flux_set_var(K_EDIT(), editor)
+  flux_qt_set_text(editor, "def square(x) { x * x }\nsquare(5)\n")
+  flux_qt_layout_add_widget(lay, editor)
+
+  # Output area
+  let out = flux_qt_create_textedit()
+  flux_set_var(K_OUT(), out)
+  flux_qt_set_text(out, "// Output\n")
+  flux_qt_layout_add_widget(lay, out)
+
+  # Bind events
+  flux_qt_on_click_by_name(btn_run, "on_run")
+  flux_qt_on_click_by_name(btn_clr, "on_clear")
+  flux_qt_create_shortcut(win, "F5", "on_run")
+
+  0.0
+}
+
+main()
+```

@@ -1,0 +1,113 @@
+# Schematic Editor
+
+VioraEDA's schematic editor is a high-FPS interactive canvas for capturing electronic designs. It supports 58 component types, 19 placement and editing tools, and 70 dialogs — covering everything from simple passive networks to hierarchical mixed-signal designs with SystemVerilog blocks.
+
+## Component Types (58)
+
+### Passives
+Resistor, Capacitor, Inductor, Potentiometer, Transformer, Coupled Inductor
+
+### Sources
+Voltage Source, Current Source, Controlled Source (VCCS/VCVS/CCCS/CCVS), Behavioral Current Source, Power
+
+### Semiconductors
+Diode, Transistor (BJT/MOSFET/JFET), LED, Blinking LED
+
+### Digital / Mixed-Signal
+XSPICE Block, SystemVerilog Block, ADC Bridge, DAC Bridge, Analog Function, Smart Signal
+
+### Instruments
+Oscilloscope, Logic Analyzer, Signal Generator, Virtual Terminal, Logic Probe, Instrument Probe
+
+### Interactive Controls
+Push Button, Switch, Tuning Slider, Rotary Knob, Joystick, Logic Toggle
+
+### Display
+Seven Segment Display
+
+### Wiring
+Wire, Bus, Bus Entry, Net Label, Air Wire, No Connect, Hierarchical Port, Schematic Sheet
+
+### Annotations
+Text, Shape, SPICE Directive, Hint, ERC Marker, Waveform Marker, Flux Measurement, Simulation Net Table
+
+### Special
+IC, OSDI Model, Core, Schematic Page
+
+## Tools (19)
+
+| Tool | Description |
+|---|---|
+| Select | Selection, move, rotate, and mirror items |
+| Component | Place components from the symbol library |
+| Wire | Draw wires with automatic corner routing |
+| Bus | Draw bus lines |
+| Bus Entry | Place bus entry connectors |
+| Net Label | Place net labels for implicit connections |
+| No Connect | Mark intentionally unconnected pins |
+| Probe | Place voltage/current measurement probes |
+| Scissors | Cut wires at intersections |
+| Shape | Draw rectangles, circles, and lines |
+| Text | Place text annotations |
+| SPICE Directive | Place `.SPICE` directives directly on the schematic |
+| Hierarchical Port | Define sheet ports for hierarchical designs |
+| Sheet | Place hierarchical sub-sheet references |
+| Zoom Area | Zoom to a selection rectangle |
+
+## Analysis Engines (12)
+
+| Engine | Description |
+|---|---|
+| ERC | Electrical Rules Check with configurable custom rules |
+| Advanced ERC | Extended rule set for power and connectivity checks |
+| Connectivity | Net connectivity tracing and validation |
+| Wire Router | Automatic wire routing between component pins |
+| Layout Optimizer | Component placement optimization |
+| Annotator | Automatic reference designator assignment |
+| Net Manager | Net name management and cross-probing |
+| SPICE Netlist Generator | Exports a valid SPICE netlist from the schematic |
+| FFT Analyzer | Spectral analysis of simulation results |
+| Schematic Diff | Visual comparison of two schematic versions |
+| Netlist Engine | Core netlist traversal and generation engine |
+
+## Dialogs (70)
+
+Property dialogs exist for every component type. Additional workflow dialogs include:
+
+- **Circuit Template Gallery** — Pre-built circuit templates (filters, amplifiers, power stages)
+- **Design Rule Editor** — Define and manage custom ERC rules
+- **Find / Replace** — Search for components and nets by reference or value
+- **ERC Rules** — Configure severity levels for each rule class
+- **Power Nets Manager** — Manage global power and ground nets
+- **Pre-Simulation Validation** — Checks netlist integrity before launching a simulation
+- **Schematic Diff** — Side-by-side comparison of schematic revisions
+- **Subcircuit Import / Picker** — Import and instantiate SPICE subcircuit models
+- **Waveform Draw Widget** — Graphical PWL waveform editor
+- **Visual Pin-Pad Mapper** — Map schematic pins to PCB footprint pads visually
+- **Visual SPICE Mapper** — Map symbol pins to SPICE model terminal names
+- **Symbol Field Editor** — Bulk-edit component fields across a design
+- **Batch Edit** — Apply property changes to multiple selected components
+
+## UI Panels (29)
+
+- Simulation Panel (configuration, results, and waveform plot)
+- Netlist Editor with SPICE syntax highlighting
+- FluxScript Code Editor with auto-completion and error underlines
+- Oscilloscope Window and Logic Analyzer Window
+- Virtual Terminal (UART console)
+- Smart Probe Engine/Overlay
+- Smith Chart Widget for RF analysis
+- Schematic Minimap and Hierarchy Panel
+- Model Browser and Library Browser
+- BOM Dialog and ERC Diagnostics Panel
+- Extension Manager (install, enable, and edit extension manifests)
+
+## I/O Formats
+
+| Format | Direction | Description |
+|---|---|---|
+| `.flxsch` | Read/Write | Native VioraEDA schematic format |
+| `.cir` / `.sp` | Import | SPICE netlist → schematic conversion |
+| `.asc` | Import | LTspice schematic import |
+| Netlist-to-Schematic | Import | Reconstruct schematic from any SPICE netlist |
+| SPICE Netlist | Export | Generate simulation-ready netlist from schematic |

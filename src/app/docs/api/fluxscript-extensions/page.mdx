@@ -1,0 +1,244 @@
+# FluxScript Extension API
+
+The FluxScript Extension API provides 27+ JIT-registered global functions for building custom GUI widgets, interacting with the VioraEDA workspace, and running automated simulation sweeps. Extensions are written in FluxScript, a JIT-compiled scripting language with unit safety, Qt GUI bindings, and simulator control.
+
+---
+
+## Overview
+
+FluxScript extensions run inside VioraEDA as self-contained modules. Each extension is structured as a directory containing a `manifest.json` metadata file and a FluxScript main file (e.g., `main.flux`). Inside the script, developers construct user interfaces using Qt widgets, register callbacks, interact with schematic components, and trigger SPICE simulations.
+
+---
+
+## Window and Layout Functions
+
+All widget creation and layout functions return double-typed handles representing the underlying C++ Qt object pointers.
+
+| Function | Parameters | Returns | Description |
+| :--- | :--- | :--- | :--- |
+| `flux_qt_create_window` | `title: string` | `handle` | Create a new dialog window with the given window title. |
+| `flux_qt_set_window_size` | `window: handle, width: float, height: float` | `void` | Resize a window widget. |
+| `flux_qt_create_layout` | `type: string` | `handle` | Create a layout container (e.g., `"vbox"`, `"hbox"`, or `"grid"`). |
+| `flux_qt_set_layout` | `container: handle, layout: handle` | `void` | Apply a layout to a window or widget container. |
+| `flux_qt_layout_add_widget` | `layout: handle, widget: handle` | `void` | Add a widget to a Box or Grid layout container. |
+| `flux_qt_grid_add_widget` | `grid_layout: handle, widget: handle, row: float, col: float, row_span: float, col_span: float` | `void` | Place a widget at specific coordinates within a grid layout. |
+
+```fluxscript
+// Create and size a window
+let win = flux_qt_create_window("Parameter Sweep");
+flux_qt_set_window_size(win, 400.0, 300.0);
+
+// Set up layout
+let layout = flux_qt_create_layout("vbox");
+flux_qt_set_layout(win, layout);
+```
+
+---
+
+## Widget Functions
+
+Widgets are created dynamically and return double handles. Once created, they are added to layouts or other container widgets.
+
+| Function | Parameters | Returns | Description |
+| :--- | :--- | :--- | :--- |
+| `flux_qt_create_label` | `text: string` | `handle` | Create a text label widget. |
+| `flux_qt_create_button` | `text: string` | `handle` | Create a clickable push button widget. |
+| `flux_qt_create_slider` | `orientation: float` | `handle` | Create a slider (1.0 for vertical, 0.0 for horizontal). |
+| `flux_qt_create_lcd` | *(none)* | `handle` | Create an 8-digit LCD numeric display widget. |
+| `flux_qt_create_combobox`| *(none)* | `handle` | Create an empty dropdown combo box. |
+| `flux_qt_create_lineedit`| `text: string` | `handle` | Create a single-line text input field. |
+| `flux_qt_create_checkbox`| `text: string` | `handle` | Create a checkbox widget with label text. |
+| `flux_qt_create_spinbox` | *(none)* | `handle` | Create a numeric spin box with a range of 0 to 1,000,000. |
+| `flux_qt_create_progressbar`| *(none)*| `handle` | Create a progress bar widget with a range of 0 to 100. |
+| `flux_qt_create_tableview`| `rows: float, cols: float` | `handle` | Create a table widget with specified dimensions. |
+
+### Widget Specific Methods
+
+* **Combo Box**:
+  * `flux_qt_combo_add_item(combo: handle, text: string)`
+  * `flux_qt_combo_clear(combo: handle)`
+  * `flux_qt_combo_set_current_index(combo: handle, index: float)`
+* **LCD Display**:
+  * `flux_qt_lcd_display(lcd: handle, value: float)`
+* **Text / LineEdit**:
+  * `flux_qt_set_text(widget: handle, text: string)`
+  * `flux_qt_get_text(widget: handle)` (returns string)
+* **Table**:
+  * `flux_qt_table_set_item(table: handle, row: float, col: float, text: string)`
+  * `flux_qt_table_set_value(table: handle, row: float, col: float, value: float)`
+  * `flux_qt_table_set_header(table: handle, col: float, text: string)`
+  * `flux_qt_table_row_count(table: handle)` (returns float)
+  * `flux_qt_table_col_count(table: handle)` (returns float)
+* **Message Box**:
+  * `flux_qt_msg_box(title: string, text: string)`
+
+```fluxscript
+let label = flux_qt_create_label("Configuration Panel");
+let btn_run = flux_qt_create_button("Sweep");
+let progress = flux_qt_create_progressbar();
+
+flux_qt_layout_add_widget(layout, label);
+flux_qt_layout_add_widget(layout, progress);
+flux_qt_layout_add_widget(layout, btn_run);
+```
+
+---
+
+## Signal and Event Connection
+
+Callback signals are bound to widgets by passing the widget handle and the **string name** of the target global FluxScript callback function.
+
+| Function | Parameters | Description |
+| :--- | :--- | :--- |
+| `flux_qt_on_click_by_name` | `widget: handle, callback_name: string` | Call function by name when a button is clicked. |
+| `flux_qt_on_value_changed_by_name` | `widget: handle, callback_name: string` | Call function by name when a slider or spinbox value changes. |
+| `flux_qt_on_current_index_changed_by_name` | `widget: handle, callback_name: string` | Call function by name when combo box selection changes. |
+| `flux_qt_on_toggled_by_name` | `widget: handle, callback_name: string` | Call function by name when checkbox is toggled. |
+
+```fluxscript
+def on_btn_run_clicked() {
+    viora_flux_print("Button clicked!");
+}
+
+// Bind button callback by function name string
+flux_qt_on_click_by_name(btn_run, "on_btn_run_clicked");
+```
+
+---
+
+## Workspace & Simulation Control
+
+Workspace functions allow scripts to read variables, modify schematic parameters, execute simulations, and retrieve output waveforms.
+
+| Function | Parameters | Returns | Description |
+| :--- | :--- | :--- | :--- |
+| `flux_get_var` | `name: string` | `double` | Read a script variable. |
+| `flux_set_var` | `name: string, value: double` | `void` | Write a script variable. |
+| `flux_set_prop` | `ref: string, prop: string, value: float` | `void` | Set a schematic component's numeric parameter (e.g. `"R1"`, `"value"`, `1000.0`). |
+| `flux_set_prop_str` | `ref: string, prop: string, value: string` | `void` | Set a schematic component's string parameter (e.g. `"U1"`, `"model"`, `"LM741"`). |
+| `flux_run_sim` | `analysis: string, tStop: float, tStep: float` | `void` | Run a simulation (`"tran"`, `"ac"`, `"op"`, or `"live"`). Blocks until completion. |
+| `flux_sim_get_vector_size` | `vector_name: string` | `int` | Get the data point count of a simulation vector (e.g., `"v(out)"`). |
+| `flux_sim_get_vector_val` | `vector_name: string, index: int` | `double` | Get a specific Y-axis value from a simulation vector. |
+| `flux_sim_get_vector_x` | `vector_name: string, index: int` | `double` | Get a specific X-axis value (time or frequency) from a simulation vector. |
+| `viora_flux_print` | `message: string` | `void` | Print a message to the VioraEDA application log console. |
+
+```fluxscript
+// Modify schematic value and run transient simulation
+flux_set_prop("R1", "value", 2200.0);
+flux_run_sim("tran", 1e-3, 1e-6);
+
+// Inspect results
+let len = flux_sim_get_vector_size("v(out)");
+if (len > 0) {
+    let t = flux_sim_get_vector_x("v(out)", 0);
+    let val = flux_sim_get_vector_val("v(out)", 0);
+    viora_flux_print("t = 0: V(out) = " + flux_to_str(val) + " V");
+}
+```
+
+---
+
+## Extension Manifest (`manifest.json`)
+
+Every extension folder must contain a `manifest.json` file. The structure declares metadata, the main execution entry file, startup hooks, and UI menu actions.
+
+```json
+{
+  "id": "viora-sweep-tool",
+  "name": "Parameter Sweep",
+  "version": "1.0.0",
+  "author": "Engineering Team",
+  "description": "Performs parameter sweeps on circuit values.",
+  "main": "main.flux",
+  "hooks": {
+    "onActivate": "init_ext"
+  },
+  "menu": [
+    {"path": "Tools/Parameter Sweep", "action": "show_window"}
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | string | Yes | Unique identifier for the extension. |
+| `name` | string | Yes | Human-readable name shown in UI panels. |
+| `version` | string | Yes | Semantic version string. |
+| `author` | string | No | Author's name. |
+| `description` | string | No | Short description of extension capabilities. |
+| `main` | string | Yes | Entry script filename (e.g. `"main.flux"`). |
+| `hooks` | object | No | Lifecycle callback bindings. `"onActivate"` specifies the function name called when the extension loads. |
+| `menu` | list | No | Registers menu items. Each item has a `"path"` in the top menu bar and a target `"action"` function to trigger. |
+
+---
+
+## Example Sweep Extension
+
+Below is a complete implementation of a parameter sweep tool using the FluxScript Extension API.
+
+```fluxscript
+// main.flux
+// Parameter Sweep Extension
+
+var win = 0.0;
+var progress = 0.0;
+var table = 0.0;
+
+def init_ext() {
+    viora_flux_print("Parameter Sweep Extension loaded.");
+}
+
+def show_window() {
+    win = flux_qt_create_window("Resistor Sweep");
+    flux_qt_set_window_size(win, 500.0, 400.0);
+
+    let layout = flux_qt_create_layout("vbox");
+    flux_qt_set_layout(win, layout);
+
+    let btn_sweep = flux_qt_create_button("Run Sweep");
+    progress = flux_qt_create_progressbar();
+    table = flux_qt_create_tableview(11.0, 2.0);
+
+    flux_qt_table_set_header(table, 0.0, "Resistance (Ohm)");
+    flux_qt_table_set_header(table, 1.0, "Output Voltage (V)");
+
+    flux_qt_layout_add_widget(layout, btn_sweep);
+    flux_qt_layout_add_widget(layout, progress);
+    flux_qt_layout_add_widget(layout, table);
+
+    flux_qt_on_click_by_name(btn_sweep, "on_run_sweep");
+}
+
+def on_run_sweep() {
+    let start_r = 1000.0;
+    let stop_r = 10000.0;
+    let step_r = 1000.0;
+    
+    var row = 0.0;
+    let steps = 10.0;
+
+    flux_qt_lcd_display(progress, 0.0);
+
+    for (var r_val = start_r; r_val <= stop_r; r_val = r_val + step_r) {
+        // Stamp value on component
+        flux_set_prop("R1", "value", r_val);
+        
+        // Execute transient simulation
+        flux_run_sim("tran", 1e-3, 1e-6);
+
+        // Retrieve last value from v(out)
+        let vec_size = flux_sim_get_vector_size("v(out)");
+        let last_idx = vec_size - 1;
+        let vout = flux_sim_get_vector_val("v(out)", last_idx);
+
+        // Update UI table
+        flux_qt_table_set_value(table, row, 0.0, r_val);
+        flux_qt_table_set_value(table, row, 1.0, vout);
+
+        // Update progress
+        row = row + 1.0;
+        let pct = (row / steps) * 100.0;
+        flux_qt_lcd_display(progress, pct);
+    }
+}
+```

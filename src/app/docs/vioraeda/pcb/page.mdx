@@ -1,0 +1,108 @@
+# PCB Editor
+
+> **Status:** The PCB editor is currently in **demo/prototype stage**. Core functionality — trace routing, DRC, Gerber export, and 3D preview — is implemented. Some advanced features remain under active development.
+
+VioraEDA's PCB editor provides a full board design environment built on the same rendering pipeline as the schematic editor. It supports copper pour, differential pairs, length tuning, a DRC engine, and Gerber export for fabrication.
+
+## Board Items (8)
+
+| Item | Description |
+|---|---|
+| Component | Placed component with associated footprint |
+| Trace | Copper trace routing between pads |
+| Via | Through-hole via connecting copper layers |
+| Pad | Component pad (SMD or through-hole) |
+| Copper Pour | Filled copper zone on a layer |
+| Shape | Geometric board outline or silkscreen shapes |
+| Image | Imported image for silkscreen artwork |
+| Ratsnest | Airwire indicators for unconnected nets |
+
+## Tools (16)
+
+| Tool | Description |
+|---|---|
+| Select | Select, move, rotate, and mirror items |
+| Component | Place footprints from the library |
+| Trace | Route copper traces between pads |
+| Via | Place vias between layers |
+| Pad | Place free-standing pads |
+| Pour | Draw and fill copper zones |
+| Rect | Draw board outline rectangles |
+| Shape | Draw arbitrary polygon shapes |
+| Erase | Remove items from the board |
+| Measure | Measure distances between points |
+| Diff Pair | Route matched differential pairs |
+| Length Tuning | Add serpentine tuning to meet length constraints |
+| Zoom Area | Zoom to a selected region |
+
+## Analysis Engines (10)
+
+| Engine | Description |
+|---|---|
+| DRC Engine | Design Rule Check against clearance, width, and via rules |
+| Connectivity Engine | Net connectivity verification against the netlist |
+| Auto Router | Automatic trace routing using maze/grid algorithms |
+| Ratsnest Manager | Tracks and updates unconnected net indicators |
+| Signal Integrity | Trace impedance and signal integrity analysis |
+| Length Match Manager | Enforces trace length constraints across a net group |
+| Length Measurement | Measures routed trace lengths per net |
+| Fanout Engine | BGA and IC pin fanout automation |
+| Serpentine Generator | Generates meander routing for length-matching |
+| PCB Diff Engine | Compares two board revisions and highlights changes |
+
+## Design Rule Check (DRC)
+
+The DRC engine validates the board against a configurable rule set before fabrication. Rules are defined in the Board Setup dialog and include:
+
+- **Clearance rules** — Minimum spacing between copper objects (trace-to-trace, pad-to-pour, via-to-trace)
+- **Trace width rules** — Per-net minimum and maximum trace widths
+- **Via size rules** — Minimum annular ring and drill diameter
+- **Copper pour rules** — Pour-to-pad clearance and minimum spoke width
+- **Custom rule editor** — Define constraint expressions for specific net classes
+
+## Dialogs (12)
+
+| Dialog | Description |
+|---|---|
+| Board Setup | Layer stackup, design rules, and net classes |
+| Gerber Export | Configure layer-to-Gerber file mapping |
+| Netlist Import | Import netlist from schematic |
+| Footprint Browser | Browse and place footprints from the library |
+| Auto-Router Configuration | Set routing strategy, layer preferences, and constraints |
+| Length Matching | Define length constraints and tolerance windows |
+| Via Stitching | Configure ground pour via stitching patterns |
+| Pick-and-Place Export | Generate assembly placement files |
+| Design Report Viewer | Browse the 7-section PDF/HTML design report |
+| Fanout Wizard | Configure automated BGA fanout |
+| PDF Viewer | Embedded viewer for design reports |
+| PCB Diff Viewer | Visual comparison of two board revisions |
+
+## Manufacturing Output
+
+| Format | Description |
+|---|---|
+| Gerber (RS-274X) | Per-layer fabrication files for PCB manufacturers |
+| NC Drill | Excellon drill file for hole coordinates and sizes |
+| Pick-and-Place | CSV/TSV component placement file for assembly machines |
+| BOM | Bill of Materials with reference designators and values |
+| Design Report | PDF/HTML report with 7 sections (stackup, DRC, BOM, etc.) |
+| MCAD Export | 3D STEP model export for mechanical CAD integration |
+
+## Gerber Viewer
+
+The integrated Gerber viewer provides layer-by-layer inspection of the generated fabrication files before submission:
+
+- 2D layer visualization with per-layer color control
+- 3D composite board preview
+- Layer visibility and ordering controls
+- Point-to-point measurement tools
+
+## Import / Export
+
+- KiCad `.kicad_pcb` footprint import
+- Netlist import from the VioraEDA schematic editor
+- Native `.flxpcb` file I/O
+
+## Plugin System
+
+The PCB editor supports native C++ plugins through the `pcb_plugin.h` interface. Plugins are loaded as shared libraries (`.so` on Linux, `.dll` on Windows) via `QPluginLoader` and can add custom tools, analysis engines, and export formats.

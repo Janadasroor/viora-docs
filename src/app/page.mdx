@@ -1,0 +1,19 @@
+# Viora EDA
+
+Viora EDA is an open-source electronic design automation ecosystem built for the full hardware development workflow — from schematic capture and PCB layout to SPICE simulation, AVR firmware debugging, and AI-assisted circuit design.
+
+The ecosystem is modular by design. Each project is self-contained and production-ready on its own, but they are tightly integrated: VioraEDA uses VioMATRIXC as its simulation engine, FluxScript as its scripting backbone, and VioAVR for mixed-signal co-simulation.
+
+## Projects
+
+| Project | Description |
+|---|---|
+| [**VioraEDA**](/docs/vioraeda) | Full EDA suite — schematic editor, PCB layout, mixed-mode SPICE simulator, symbol/footprint editors, Gemini AI co-pilot, and FluxScript extensions. |
+| [**VioAVR**](/docs/vioavr) | High-performance AVR instruction set simulator with cycle-accurate timing, peripheral emulation, GDB remote debugging, and ngspice co-simulation. |
+| [**FluxScript**](/docs/fluxscript) | JIT-compiled scripting language with compile-time SI unit dimensional analysis. Powers VioraEDA's extension system and behavioral simulation blocks. |
+| [**FerroMNA**](/docs/ferromna) | From-scratch SPICE-compatible circuit simulation engine written in Rust. Implements 16 analysis types and 43+ device models, up to 3× faster than ngspice on equivalent circuits. |
+| [**VioMATRIXC**](/docs/viomatrixc) | An ngspice fork with LTspice-compatible netlist syntax, extended XSPICE code models, and built-in `WAVEFILE` support for audio-driven transient simulation. |
+
+## Getting Started
+
+If you are new to the ecosystem, start with the [Getting Started guide](/docs/getting-started). It covers system requirements, per-project build instructions, and a first simulation walkthrough.

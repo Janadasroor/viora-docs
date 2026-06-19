@@ -1,0 +1,109 @@
+# VioMATRIXC
+
+VioMATRIXC is an ngspice fork that extends the open-source SPICE simulator with LTspice-compatible netlist syntax, additional XSPICE code models, native `wavefile` parameter-based audio source support, and native `pwlfile` loading. It is built as `libngspice.so` (shared library) or `libngspice.a` (static archive) and serves as the embedded simulation engine for VioraEDA, VspiceDroid, and FluxScript.
+
+---
+
+## What Is VioMATRIXC?
+
+ngspice is the leading open-source mixed-mode circuit simulator, based on SPICE3f5 and the XSPICE digital simulation framework. VioMATRIXC forks ngspice to close the compatibility gap between its native netlist dialect and LTspice's widely used format.
+
+Rather than replacing the ngspice simulation kernel, VioMATRIXC adds a compatibility pre-processor that transforms LTspice constructs into their ngspice equivalents before the simulation engine processes them. The result is a drop-in replacement that accepts both ngspice-native and LTspice-compatible netlists, making it possible to run LTspice schematics and third-party models without modification.
+
+---
+
+## Relationship to ngspice
+
+| Aspect | ngspice | VioMATRIXC |
+|---|---|---|
+| Simulation core | SPICE3f5 + XSPICE | Unchanged |
+| Device models | MOSFET, BJT, diode, etc. | Same, plus A-device compatibility transforms |
+| Analysis modes | DC, AC, transient, noise, etc. | Same |
+| Netlist syntax | Native ngspice | Native ngspice + LTspice-compatible via `--enable-vicompat` |
+| A-device library | XSPICE code models | Mapped: OTA (to B-source), COUNTER (to `d_fdiv`), MODULATOR (to `modulator`), SAMPLEHOLD (to `samplehold`), VARISTOR (to `varistor`) |
+| Audio support | None | Parameter-based WAV file loading on voltage/current sources (`wavefile="file.wav"`) |
+| PWL file support | None | Parameter-based PWL file loading on sources (`pwlfile="file.pwl"`) |
+
+---
+
+## Key Features
+
+### LTspice Compatibility Mode
+
+Activated by passing `--enable-vicompat` at configure time or at runtime. This flag enables a netlist pre-processor that:
+
+- Translates LTspice fixed-pin A-device references into their ngspice/XSPICE equivalents (or B-sources)
+- Handles LTspice-specific `.param` and `.func` syntax extensions
+- Normalizes component reference designators to ngspice conventions
+
+### A-Device Transforms
+
+VioMATRIXC maps LTspice behavioral A-devices to equivalents during netlist loading:
+
+- **OTA**: Translated into a voltage-controlled current source (`B-source`) with clamping and compliance models.
+- **COUNTER**: Translated into the `d_fdiv` XSPICE digital code model.
+- **MODULATOR**: Mapped to the custom `modulator` XSPICE analog code model.
+- **SAMPLEHOLD**: Mapped to the custom `samplehold` XSPICE analog code model.
+- **VARISTOR**: Mapped to the custom `varistor` XSPICE analog code model.
+
+### WAVEFILE Source Support
+
+The `wavefile` parameter enables audio-driven transient simulations. An external WAV file is loaded as a transient function for a voltage (`V`) or current (`I`) source:
+
+```spice
+* Audio filter driven by a WAV input
+V1 in 0 wavefile="input.wav" wavechan=0
+R1 in out 10k
+C1 out 0 1u
+
+.tran 22.7u 1
+.end
+```
+
+### pwlfile Source Support
+
+The `pwlfile` parameter allows loading Piece-Wise Linear (PWL) time-value pairs directly from a file instead of listing all points inside the netlist:
+
+```spice
+* Load input waveform from external PWL file
+V1 in 0 pwlfile="stimulus.pwl"
+```
+
+---
+
+## Library Builds
+
+VioMATRIXC is designed to be built as a linkable library for embedding:
+
+```bash
+# Shared library (default for VioraEDA and VspiceDroid)
+libngspice.so  →  /usr/local/lib/libngspice.so
+
+# Static library
+libngspice.a   →  /usr/local/lib/libngspice.a
+```
+
+The shared library exposes the standard ngspice API (`ngSpice_Init`, `ngSpice_Command`, `ngSpice_Circ`, etc.) plus VioMATRIXC-specific extensions for LTspice compatibility and WAV/PWL loading.
+
+---
+
+## Projects Using VioMATRIXC
+
+| Project | Integration | Usage |
+|---|---|---|
+| **VioraEDA** | Links `libngspice.so` | Built-in SPICE simulation engine for schematic-level analysis |
+| **viospice** | Links `libngspice.so` | Standalone SPICE frontend with FluxScript integration |
+| **VspiceDroid** | Links `libngspice.so` | On-device SPICE simulator for the Android companion app |
+
+---
+
+## Fork Change Log
+
+All modifications from the upstream ngspice codebase are documented in `VIOCHANGES.md` in the VioMATRIXC source tree. This file tracks every behavioral change, new feature, and compatibility transform.
+
+---
+
+## Documentation
+
+- [LTspice Compatibility](/docs/viomatrixc/ltspice) — Detail on A-device transforms, `wavefile` parameters, and `pwlfile` support
+- [Build Instructions](/docs/viomatrixc/build) — Prerequisites, autotools build steps, compile scripts, and testing

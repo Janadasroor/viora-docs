@@ -1,0 +1,306 @@
+# Python Bindings
+
+VioraEDA exposes its core simulation engine and automation APIs to Python through `nanobind`-generated bindings, a `bpy`-like scripting layer, an MCP server for AI IDE integration, and an ML dataset API. The Python interface enables scripted simulation control, automated testing, AI-assisted design workflows, and machine learning dataset generation.
+
+---
+
+## Architecture
+
+| Component | File | Purpose |
+| :--- | :--- | :--- |
+| `_core.so` | nanobind module | Direct C++ bindings to `VioSolverCore` via nanobind. |
+| `v_api.py` | Python wrapper | High-level `bpy`-like scripting API built on top of `_core`. |
+| **MCP Server** | Model Context Protocol | AI IDE integration (Cursor, VS Code Copilot, etc.) via the MCP protocol. |
+| **ML Dataset API** | Flask / FastAPI | REST API for generating and serving ML training datasets. |
+| **Embedded Console**| Qt Python console | Interactive Python REPL embedded inside the VioraEDA UI. |
+
+---
+
+## nanobind Module (`_core.so`)
+
+The `_core` module is built with `nanobind`, a lightweight C++ ↔ Python binding library. It exposes the `VioSolverCore` class and supporting types directly to Python with minimal overhead.
+
+```python
+from viora_core import _core
+
+# Create a solver instance
+solver = _core.VioSolverCore()
+
+# Load a netlist
+solver.load_netlist("amplifier.cir")
+
+# Configure analysis
+solver.set_analysis("ac", start_freq=1, stop_freq=1e6, points=100)
+
+# Run simulation
+results = solver.run()
+
+# Access results
+vout = results.get_vector("v(out)")
+freq = results.get_frequency()
+
+print(f"Gain at 1kHz: {vout[10]} dB")
+```
+
+### Key Classes in `_core`
+
+| Class | Description |
+| :--- | :--- |
+| `VioSolverCore` | Main simulation engine — load netlists, configure analyses, run simulations, retrieve results. |
+| `Netlist` | Netlist parser and modifier — add, remove, and modify components and subcircuits. |
+| `SimResult` | Simulation result container — access vectors, frequency data, and operating points. |
+| `ComponentParam` | Parameter descriptor — read/write component values for optimization sweeps. |
+
+---
+
+## `bpy`-like Scripting API (`v_api.py`)
+
+The `v_api.py` module provides a higher-level, Blender Python (`bpy`)-inspired API for scripting VioraEDA operations. It wraps the low-level `_core` bindings with an ergonomic interface for common EDA tasks.
+
+```python
+import v_api as v
+
+# Open a project
+v.open_project("my_circuit.vprj")
+
+# Get the active schematic
+sch = v.get_active_schematic()
+
+# List all components
+for comp in sch.components:
+    print(f"{comp.ref}: {comp.value}")
+
+# Modify a component value
+sch.set_component_value("R1", "10k")
+
+# Run a simulation from script
+sim = v.run_simulation(type="ac", start=1, stop=1e6)
+
+# Access results
+vout = sim.get_vector("v(out)")
+print(f"Peak gain: {max(vout):.2f} dB")
+
+# Export netlist
+v.export_netlist("output.cir")
+
+# Save project
+v.save_project()
+```
+
+### `bpy`-like API Functions
+
+| Function | Returns | Description |
+| :--- | :--- | :--- |
+| `v.open_project(path)` | `Project` | Open a VioraEDA project file. |
+| `v.get_active_schematic()` | `Schematic` | Get the currently active schematic sheet. |
+| `v.get_all_schematics()` | `list[Schematic]`| List all schematic sheets in the project. |
+| `v.run_simulation(**kwargs)` | `SimResult` | Run a SPICE simulation with the given parameters. |
+| `v.export_netlist(path)` | `None` | Export the current schematic as a SPICE netlist. |
+| `v.save_project()` | `None` | Save the current project state. |
+| `v.undo()` | `None` | Undo the last operation. |
+| `v.redo()` | `None` | Redo the last undone operation. |
+
+---
+
+## MCP Server (Model Context Protocol)
+
+The MCP server enables AI coding assistants (such as Cursor, VS Code Copilot, and other agentic tools) to interact with VioraEDA. It exposes simulation control, netlist manipulation, and result access through the Model Context Protocol, allowing AI agents to design circuits, run simulations, and analyze results.
+
+```bash
+# Start the MCP server
+python -m viora_mcp --port 8765
+
+# Or start it from within VioraEDA (Settings → AI → MCP Server)
+```
+
+### MCP Server Capabilities
+
+| Tool | Description |
+| :--- | :--- |
+| `list_components` | List all components in the current schematic with their values. |
+| `read_netlist` | Read the SPICE netlist as text. |
+| `modify_component` | Change a component value or model. |
+| `add_component` | Add a new component to the schematic. |
+| `run_simulation` | Execute a simulation (DC, AC, transient, etc.). |
+| `get_results` | Retrieve simulation results for analysis. |
+| `get_waveform` | Get waveform data for a specific signal. |
+
+---
+
+## ML Dataset API
+
+The ML Dataset API provides a REST interface for generating machine learning training datasets from SPICE simulations. It runs parameterized simulations across component value ranges and exports feature/label pairs suitable for training neural networks or regression models.
+
+```python
+# Start the ML dataset server
+python -m viora_ml_server --port 8080
+
+# Generate a dataset via REST API
+import requests
+
+response = requests.post("http://localhost:8080/generate", json={
+    "netlist": "amplifier.cir",
+    "sweep_params": {
+        "R1": {"min": 1000, "max": 100000, "steps": 50},
+        "C1": {"min": 1e-12, "max": 1e-6, "steps": 50}
+    },
+    "analysis": "ac",
+    "output_vectors": ["v(out)", "v(in)"],
+    "features": ["gain_at_1k", "bandwidth", "phase_margin"],
+    "format": "numpy"
+})
+
+dataset = response.json()
+print(f"Generated {dataset['samples']} samples")
+```
+
+### ML API Endpoints
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/generate` | POST | Generate an ML dataset from parameterized simulations. |
+| `/status/{job_id}` | GET | Check dataset generation progress. |
+| `/download/{job_id}` | GET | Download the generated dataset (numpy, csv, or json format). |
+| `/templates` | GET | List available analysis templates. |
+| `/validate` | POST | Validate a netlist and sweep configuration before generation. |
+
+---
+
+## Embedded Python Console
+
+VioraEDA includes an embedded Python console (accessible via View → Python Console) that provides an interactive REPL for scripting. The console has full access to the `v_api` module and `_core` bindings.
+
+```python
+# In the VioraEDA Python Console:
+
+>>> import v_api as v
+
+# List components
+>>> sch = v.get_active_schematic()
+>>> [f"{c.ref}: {c.value}" for c in sch.components]
+['R1: 10k', 'R2: 4.7k', 'C1: 100n', 'U1: LM358']
+
+# Run a quick simulation
+>>> result = v.run_simulation(type="dc")
+>>> print(result.get_vector("v(out)"))
+[0.0, 0.12, 0.25, ..., 4.98, 5.0]
+
+# Batch modify components
+>>> for comp in sch.components:
+...     if comp.ref.startswith("R"):
+...         sch.set_component_value(comp.ref, "10k")
+```
+
+---
+
+## Requirements
+
+| Package | Version | Purpose |
+| :--- | :--- | :--- |
+| `google-genai` | 0.3+ | Google Gemini AI integration for the AI co-pilot |
+| `numpy` | 1.24+ | Numerical array operations for simulation results |
+| `numba` | 0.58+ | JIT compilation for high-performance numeric code in ML pipelines |
+| `fastapi` | 0.100+ | REST framework for the ML Dataset API and MCP server |
+| `flask` | 3.0+ | Alternative REST framework for the ML Dataset API |
+| `uvicorn` | 0.23+ | ASGI server for running FastAPI endpoints |
+| `pydantic` | 2.0+ | Data validation for API request/response schemas |
+
+```bash
+# Install Python dependencies
+pip install google-genai numpy numba fastapi uvicorn pydantic
+
+# Or from requirements.txt
+pip install -r requirements.txt
+```
+
+---
+
+## Usage Examples
+
+### Example 1: Automated Parameter Sweep
+
+```python
+from viora_core import _core
+import numpy as np
+
+solver = _core.VioSolverCore()
+solver.load_netlist("filter.cir")
+
+gains = []
+cutoff_freqs = []
+
+for c1_val in np.logspace(-12, -6, 50):
+    solver.set_parameter("C1", c1_val)
+    result = solver.run()
+
+    vout = result.get_vector("v(out)")
+    gain = np.max(np.abs(vout))
+    gains.append(gain)
+
+    # Find -3dB point
+    vout_db = 20 * np.log10(np.abs(vout) / np.max(np.abs(vout)))
+    idx_3db = np.argmin(np.abs(vout_db + 3))
+    freq = result.get_frequency()
+    cutoff_freqs.append(freq[idx_3db])
+
+print(f"Best C1 for 1kHz cutoff: {cutoff_freqs[0]:.2e} F")
+```
+
+### Example 2: AI-Assisted Circuit Design via MCP
+
+```python
+# From an AI coding assistant connected to the MCP server:
+
+# 1. Read current schematic
+components = mcp.call("list_components")
+netlist = mcp.call("read_netlist")
+
+# 2. Analyze and suggest improvements
+analysis = mcp.call("run_simulation", type="ac")
+results = mcp.call("get_results")
+
+# 3. Modify components based on analysis
+mcp.call("modify_component", ref="R1", value="22k")
+mcp.call("modify_component", ref="C1", value="10n")
+
+# 4. Re-run and verify
+new_results = mcp.call("run_simulation", type="ac")
+print("Gain improved by 6dB")
+```
+
+### Example 3: Generate ML Dataset
+
+```python
+import requests
+import numpy as np
+
+# Request dataset generation
+resp = requests.post("http://localhost:8080/generate", json={
+    "netlist": "amplifier.cir",
+    "sweep_params": {
+        "R1": {"min": 1000, "max": 100000, "steps": 100},
+        "R2": {"min": 1000, "max": 100000, "steps": 100}
+    },
+    "analysis": "ac",
+    "output_vectors": ["v(out)"],
+    "features": ["gain_1k", "gain_10k", "bandwidth"],
+    "format": "numpy"
+})
+
+job_id = resp.json()["job_id"]
+
+# Poll until complete
+while True:
+    status = requests.get(f"http://localhost:8080/status/{job_id}")
+    if status.json()["state"] == "complete":
+        break
+
+# Download dataset
+data = requests.get(f"http://localhost:8080/download/{job_id}")
+dataset = np.load(data.content, allow_pickle=True)
+
+X = dataset["features"]  # [samples x 3]
+y = dataset["labels"]    # [samples x n_points]
+
+print(f"Dataset: {X.shape[0]} samples, {X.shape[1]} features")
+```

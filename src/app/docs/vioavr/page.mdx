@@ -1,0 +1,58 @@
+# VioAVR
+
+VioAVR is a high-performance AVR instruction set simulator written in C++20. It models the complete AVR microcontroller architecture — CPU core, memory buses, peripherals, interrupt controller, and pin multiplexing — with cycle-accurate timing. It is designed for both standalone firmware testing and tight co-simulation with SPICE circuit simulators.
+
+## Key Features
+
+- **Cycle-accurate simulation** — Every instruction consumes the exact clock cycle count as the real hardware, enabling precise timing analysis of timer configurations, interrupt latency, and communication protocols.
+- **211 MCU variants** — Covers ATmega, ATtiny, AT90, AVR-Dx, AVR-Ex, AVR-Lx, AVR-Sx, and XMEGA families. Device descriptors are generated from official Microchip ATDF device pack files.
+- **JIT compilation** — A native code generator for x86-64 compiles frequently-executed basic blocks to machine code and caches them in `mmap`'d pages, delivering near-native execution speed for long-running simulations.
+- **GDB remote stub** — Full GDB Remote Serial Protocol (RSP) over TCP. Connect any AVR-aware GDB client for source-level debugging with breakpoints, watchpoints, register inspection, and flash programming.
+- **SPICE co-simulation** — Embeds as an in-process XSPICE code model (`d_cosim`) for use with ngspice and VioMATRIXC. Also supports shared-memory bridges for external simulator integration.
+- **Comprehensive peripheral set** — GPIO, 8/16-bit timers (including TCA/TCB/TCD/TCE), UART/USART, SPI, TWI/I²C, ADC (10/12-bit), DAC, EEPROM, USB, CAN, analog comparator, watchdog, RTC, DMA, event system, CCL, and more.
+- **Automated device descriptors** — An ATDF-to-C++ generation pipeline (`gen_device_descriptor.py`) ensures all peripheral register maps, interrupt vectors, and pin multiplexing tables match the official Microchip device packs exactly.
+
+## Architecture
+
+VioAVR is built around a small set of composable components with clear ownership boundaries:
+
+- **`AvrCpu`** — Implements the full AVR instruction set using a two-level dispatch table. Exposes a `tick()` method that advances one clock cycle through the fetch-decode-execute pipeline.
+- **`MemoryBus`** — Provides a unified address space mapping flash, SRAM, I/O registers, and EEPROM. Peripheral register accesses are dispatched to the owning peripheral's `read()` / `write()` handler.
+- **`DeviceDescriptor`** — A compile-time data structure generated from ATDF files. Contains memory sizes, interrupt vector tables, I/O register bit-field layouts, pin multiplexing tables, and fuse definitions.
+- **`Machine`** — The top-level container. Instantiates all components, wires interrupt sources to the interrupt controller, and drives the main simulation loop via `run()` and `step()`.
+- **`SyncEngine`** — Manages lock-step synchronization with external simulators via shared memory and POSIX semaphores for co-simulation.
+
+## Quick Examples
+
+Run a firmware with instruction tracing and a cycle limit:
+
+```bash
+vioavr-cli --mcu atmega328p --flash firmware.hex --trace --max-cycles 100000
+```
+
+Attach a GDB debugger:
+
+```bash
+# Terminal 1
+vioavr-cli --mcu atmega328p --flash firmware.elf --gdb-port 3333 --gdb-wait
+
+# Terminal 2
+avr-gdb firmware.elf
+(gdb) target remote localhost:3333
+(gdb) break main
+(gdb) continue
+```
+
+Run a mixed-signal co-simulation with ngspice:
+
+```bash
+vioavr-cli --mcu atmega328p --flash firmware.hex --shm-bridge vioavr0
+```
+
+## Documentation
+
+- [Architecture](/docs/vioavr/architecture) — CPU, memory model, JIT compiler, GDB stub, and C++20 implementation details
+- [Peripherals](/docs/vioavr/peripherals) — Complete reference for all simulated peripheral modules across all device families
+- [Co-simulation](/docs/vioavr/cosimulation) — SPICE integration, analog bridge models, and the shared-memory protocol
+- [CLI Tools](/docs/vioavr/cli) — `vioavr-cli`, `vioavr-bridge-daemon`, `dump_device_descriptor`, and `gen_device_descriptor.py`
+- [Supported MCUs](/docs/vioavr/supported-mcus) — Full list of 211 supported MCU variants

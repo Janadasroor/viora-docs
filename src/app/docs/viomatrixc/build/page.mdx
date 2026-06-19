@@ -1,0 +1,120 @@
+# Build Instructions
+
+VioMATRIXC uses the GNU Autotools build system. This page covers prerequisites, build configurations, compile scripts, runtime configuration, and testing.
+
+---
+
+## Prerequisites
+
+| Requirement | Minimum Version | Purpose |
+| :--- | :--- | :--- |
+| **Linux or macOS** | Ubuntu 22.04 / macOS 13 | Build host |
+| **GCC** | 12+ | C/C++ compiler |
+| **Clang** | 15+ (alternative) | C/C++ compiler |
+| **GNU Autotools** | autoconf 2.71, automake 1.16 | Build system generation |
+| **libtool** | 2.4+ | Shared library management |
+| **make** | 4.3+ | Build driver |
+| **readline** | 8.0+ | Interactive console support |
+| **fftw3** | 3.3+ | FFT for AC analysis |
+| **flex / bison** | 2.6 / 3.8 | Netlist parser generation |
+
+### Debian/Ubuntu Installation
+
+```bash
+sudo apt-get install build-essential autoconf automake libtool \
+  libreadline-dev libfftw3-dev flex bison
+```
+
+### macOS (Homebrew) Installation
+
+```bash
+brew install autoconf automake libtool readline fftw flex bison
+```
+
+---
+
+## Standard Build Configurations
+
+### Shared Library with LTspice Compatibility
+
+Produces `libngspice.so` (the shared library) with the `--enable-vicompat` flag. This is the recommended configuration for VioraEDA and dynamically linked hosts. Note that ngspice uses the `--with-ngshared` flag to trigger shared library builds:
+
+```bash
+./autogen.sh
+./configure --enable-vicompat --with-ngshared --prefix=/usr/local
+make -j8
+sudo make install
+```
+
+### Standalone Executable (and Static Library)
+
+Produces the `ngspice` standalone CLI and compiles static archives without dynamic library wrapping:
+
+```bash
+./autogen.sh
+./configure --enable-vicompat --prefix=/usr/local
+make -j8
+sudo make install
+```
+
+---
+
+## Compile Scripts
+
+VioMATRIXC provides convenience shell scripts in its root directory for common build targets. These run `autogen.sh`, `configure`, and `make` in sequence.
+
+### compile_linux_shared_vicompat.sh
+
+Builds a shared library (`libngspice.so`) with LTspice compatibility on Linux.
+
+```bash
+# Runs autogen.sh and configures with --enable-vicompat --with-ngshared
+./compile_linux_shared_vicompat.sh
+```
+
+### compile_linux_vicompat.sh
+
+Builds the standalone executable and static library with LTspice compatibility on Linux.
+
+```bash
+# Runs autogen.sh and configures with --enable-vicompat (without --with-ngshared)
+./compile_linux_vicompat.sh
+```
+
+---
+
+## `configure` Options
+
+| Flag | Description |
+| :--- | :--- |
+| `--enable-vicompat` | Enable LTspice-compatible A-device translation, `wavefile`, and `pwlfile` support |
+| `--with-ngshared` | Compiles ngspice as a shared library (`libngspice.so`) instead of an executable |
+| `--prefix=PATH` | Installation prefix (default: `/usr/local`) |
+| `--enable-debug` | Build with debug symbols and assertions |
+
+---
+
+## `.spiceinit` Configuration
+
+VioMATRIXC reads a `.spiceinit` file at startup to configure default simulation parameters. Place this file in your working directory or in your home directory:
+
+```spice
+* .spiceinit — VioMATRIXC runtime configuration
+
+* Set default convergence parameters
+.options gmin=1e-12 reltol=0.01 abstol=1e-12 vntol=1e-6
+```
+
+---
+
+## Testing
+
+You can run test netlists in the `tests/viospice/` directory using the compiled executable to verify compatibility:
+
+```bash
+# Run A-device translation test
+ngspice tests/viospice/test_adevice_compat.cir
+
+# Run PWL file loading test
+ngspice tests/viospice/test_pwlfile.cir
+```

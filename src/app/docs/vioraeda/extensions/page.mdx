@@ -1,0 +1,135 @@
+# Extensions
+
+VioraEDA's extension system allows engineers to add custom tooling, behavioral simulation blocks, and UI panels without modifying the core application. Extensions are written in FluxScript and loaded at runtime. For performance-critical use cases, native C++ plugins are also supported.
+
+## FluxScript Extension API
+
+### Qt Widget Functions (27+)
+
+Extensions interact with the VioraEDA UI through a set of bridge functions that create and manage Qt widgets from FluxScript:
+
+| Function | Description |
+|---|---|
+| `flux_qt_create_window(title)` | Creates a floating dialog with a vertical layout |
+| `flux_qt_add_widget(container, widget)` | Adds a child widget to a container |
+| `flux_qt_create_label(text)` | Creates a text label |
+| `flux_qt_create_button(text)` | Creates a push button |
+| `flux_qt_create_slider(orientation)` | Creates a slider (horizontal or vertical) |
+| `flux_qt_create_lcd()` | Creates an LCD number display |
+| `flux_qt_create_combobox()` | Creates a drop-down combo box |
+| `flux_qt_create_checkbox(text)` | Creates a labeled checkbox |
+| `flux_qt_create_spinbox()` | Creates an integer spin box |
+| `flux_qt_create_progressbar()` | Creates a progress bar |
+| `flux_qt_create_tableview(rows, cols)` | Creates a table view with a fixed grid |
+
+### Signal Handlers
+
+Connect FluxScript functions to widget events using the signal handler API:
+
+| Handler | Triggered By |
+|---|---|
+| `flux_qt_on_click_by_name(handle, "func")` | Button press |
+| `flux_qt_on_value_changed_by_name(handle, "func")` | Slider or spin box value change |
+| `flux_qt_on_current_index_changed_by_name(handle, "func")` | Combo box selection change |
+| `flux_qt_on_toggled_by_name(handle, "func")` | Checkbox toggle |
+
+### Workspace API
+
+Extensions can read and control the active circuit simulation through the workspace API:
+
+| Function | Description |
+|---|---|
+| `flux_get_var(name)` | Read a circuit variable (node voltage, branch current) |
+| `flux_set_prop(ref, prop, value)` | Set a component property (e.g., resistance value) |
+| `flux_run_sim(type, tStop, tStep)` | Trigger a simulation (`tran`, `ac`, `dc`, or `op`) |
+| `flux_sim_get_vector_val(name, idx)` | Read a waveform value at a given index |
+| `flux_sim_get_vector_x(name, idx)` | Read the time/frequency x-coordinate at a given index |
+| `flux_get_project_name()` | Return the name of the active project |
+| `flux_get_schematic_file()` | Return the file path of the active schematic |
+
+### Math Built-ins
+
+Standard math functions are available globally in all extension scripts:
+
+`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `sqrt`, `pow`, `exp`, `log`, `log10`, `abs`, `floor`, `ceil`, `min`, `max`, `pi`
+
+---
+
+## Extension Structure
+
+Extensions are installed to the user configuration directory:
+
+```
+~/.config/viospice/extensions/<id>/
+  manifest.json
+  main.flux
+```
+
+### manifest.json
+
+The manifest declares extension metadata, entry points, and menu items:
+
+```json
+{
+  "id": "my-extension",
+  "name": "My Extension",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "description": "What it does",
+  "main": "main.flux",
+  "hooks": {
+    "onActivate": "init",
+    "onDeactivate": "cleanup"
+  },
+  "menu": [
+    { "label": "Open", "action": "open" }
+  ]
+}
+```
+
+### Lifecycle
+
+1. **`onActivate`** — Called once when the extension is loaded at startup or manually enabled
+2. **Menu click** — Dispatches to the named action function in `main.flux`
+3. **Component double-click** — Dispatches to the configured handler when the user double-clicks an extension component on the schematic
+4. **Auto-reload** — The extension runtime monitors `main.flux` for changes and reloads automatically on save (no restart required)
+
+---
+
+## Built-in FluxScript Templates
+
+VioraEDA ships with six ready-to-use behavioral model templates:
+
+| Template | Description |
+|---|---|
+| PWM Generator | Normalizes an input signal to a PWM duty cycle at 1 kHz |
+| State Machine | Logic comparator with a configurable threshold |
+| PID Controller | Proportional controller with configurable `Kp` gain |
+| Power Calculator | Computes instantaneous power as V × I |
+| Logic Shaper | 4-input weighted summer |
+| Signal Differencer | Computes the difference `a − b` of two signals |
+
+---
+
+## Example Extensions
+
+The following examples are included in the VioraEDA repository under `extensions/examples/`:
+
+| File | Description |
+|---|---|
+| `simple_jit.flux` | Minimal JIT behavioral block — outputs a 5 V sine wave |
+| `component_calc.flux` | Interactive RC calculator with a Qt GUI dialog |
+| `dashboard_demo.flux` | Simulation dashboard with sliders and real-time waveform display |
+| `jit_pwm_controller.flux` | 100 kHz PWM controller behavioral block |
+| `adevice_latch.flux` | D-latch implemented as an A-device code model |
+
+---
+
+## Native C++ Plugins
+
+For extensions that require native performance, VioraEDA supports C++ plugins loaded as shared libraries:
+
+- **Interface** — Implement the `pcb_plugin.h` interface
+- **Format** — Compiled as `.so` (Linux), `.dylib` (macOS), or `.dll` (Windows)
+- **Loading** — Managed by `QPluginLoader`; plugins are discovered from a configurable directory
+- **Capabilities** — Plugins can add PCB tools, DRC rules, export formats, and analysis engines

@@ -1,0 +1,210 @@
+# Architecture
+
+VioAVR is implemented in C++20 and designed around a modular, composable architecture. Each hardware subsystem is modeled as an independent component with well-defined interfaces, enabling flexible configuration for different MCU variants and simulation modes.
+
+## Core Components
+
+### AvrCpu
+
+The `AvrCpu` class implements the complete AVR instruction set. It maintains the program counter, stack pointer, status register (SREG), and the 32 general-purpose registers (R0–R31). Instruction decoding uses a two-level dispatch table: the first level indexes by opcode nibble, the second by function type.
+
+Supported instruction classes:
+
+- **Arithmetic and logic** — `ADD`, `ADC`, `SUB`, `SBC`, `AND`, `OR`, `EOR`, `COM`, `NEG`, `INC`, `DEC`, `CP`, `CPI`
+- **Data transfer** — `MOV`, `MOVW`, `LDI`, `LDS`, `STS`, `LD`, `ST`, `LPM`, `SPM`, `PUSH`, `POP`
+- **Branch** — `BRBS`, `BRBC`, `RJMP`, `RCALL`, `RET`, `RETI`, `CPSE`, `SBRC`, `SBRS`, `SBIC`, `SBIS`
+- **Bit manipulation** — `SBI`, `CBI`, `BST`, `BLD`, `SWAP`, `LSR`, `ROR`, `ASR`, `BSET`, `BCLR`
+- **Multiply** — `MUL`, `MULS`, `MULSU` with single-cycle result in R1:R0
+- **Extended address** — `ELPM`, `EIND` for devices with more than 128 KB of flash
+
+The CPU exposes a `tick()` method that advances one clock cycle. During each tick the fetch-decode-execute pipeline progresses: instruction bytes are read from flash via the memory bus, decoded, and all side effects (register writes, memory stores, flag updates) are applied.
+
+### MemoryBus
+
+The `MemoryBus` provides a unified address space mapping four physical memory regions:
+
+| Region | Address Range | Access | Description |
+|---|---|---|---|
+| Flash | 0x000000–0x3FFFFF | Read-only (runtime) | Program memory; accessed via `ICALL`/`IJMP` and `LPM`/`ELPM` |
+| SRAM | 0x008000–0x00FFFF+ | Read/Write | Data memory, stack, and heap; size varies by device |
+| I/O Registers | 0x0020–0x005F | Read/Write | Peripheral control and status registers |
+| Extended I/O | 0x0060–0x00FF | Read/Write | Extended I/O space on devices with more peripherals |
+| EEPROM | 0x00000–0x00FFF | Read/Write | Non-volatile data memory, byte-addressed |
+
+Memory access through the bus is intercepted by peripheral register handlers. When the CPU reads or writes an I/O register address, the bus dispatches to the owning peripheral's `read()` or `write()` method. This allows peripherals to implement side effects on register access — for example, clearing interrupt flags on read, or triggering an ADC conversion on write.
+
+### DeviceDescriptor
+
+The `DeviceDescriptor` is a compile-time data structure generated from Microchip ATDF (Atmel Device Family Pack) XML files by the `gen_device_descriptor.py` script. It contains:
+
+- Memory sizes: flash, SRAM, EEPROM, and their address ranges
+- Interrupt vector table with vector names and default priority ordering
+- I/O register definitions with bit-field layouts, access modes, and reset values
+- Pin multiplexing tables mapping physical pins to peripheral functions
+- Clock configuration including prescaler dividers and source options
+- Fuse and lock bit definitions with valid values
+- Signature bytes and device ID for identification
+
+Each supported MCU variant has its own compiled device descriptor. The descriptor is instantiated at runtime and used to configure the memory bus, peripheral instances, and interrupt controller for that specific device.
+
+### Machine
+
+The `Machine` class is the top-level container that owns and wires together all components. It:
+
+- Instantiates the CPU, memory bus, and device descriptor
+- Creates peripheral instances based on the device descriptor's register map
+- Connects interrupt sources to the interrupt controller
+- Configures pin multiplexing and GPIO port mappings
+- Provides the main simulation loop via `run()` and `step()`
+- Manages `HALT` and `SLEEP` states with configurable wake-up sources
+- Handles clock prescaler and power reduction register (PRR) interactions
+
+The Machine can be configured for several operating modes: free-running (maximum speed), cycle-limited (stop after N cycles), or synchronized (advance in lock-step with an external simulator).
+
+### SyncEngine
+
+The `SyncEngine` manages temporal synchronization between VioAVR and external simulators during co-simulation. It implements a lock-step protocol where both simulators agree on a global simulation time. The engine supports:
+
+- Shared-memory based synchronization with POSIX semaphore signaling
+- Analog value exchange through ADC and DAC bridge models
+- Digital I/O synchronization via pin state bitmask vectors
+- Configurable synchronization granularity (per-cycle, per-instruction, or event-driven)
+- Timeout handling to detect and recover from simulator deadlocks
+
+---
+
+## C++20 Implementation Details
+
+VioAVR leverages C++20 features for both developer ergonomics and runtime performance:
+
+- **Concepts** — Template constraints on peripheral and memory handler types ensure compile-time interface compliance without inheritance overhead
+- **`constexpr` improvements** — Device descriptors and register layouts are computed at compile time, eliminating runtime initialization cost
+- **Designated initializers** — Clean aggregate initialization of complex register and bit-field structures
+- **Coroutines** — Used for generator patterns in instruction decoding tables and register enumeration
+- **`std::span`** — Safe, bounds-checked access to register files and memory buffers without raw pointer/size pairs
+- **`std::format`** — Type-safe string formatting for trace output and debug logging
+- **Bit manipulation** — `std::popcount`, `std::countl_zero`, and `std::bit_cast` for efficient bit-field operations on register values
+
+---
+
+## Memory Map
+
+### Flash Memory
+
+Program memory ranges from 1 KB (ATtiny4/5/9/10) to 480 KB (ATmega4809). Flash is organized as 16-bit words for instruction fetches but byte-addressed for data access via `LPM`/`SPM`. The bootloader section occupies the upper portion of flash with a configurable size (128, 256, 512, or 1024 words depending on device). SPM writes follow the NVM controller protocol: write the Z-pointer and data, then execute `SPM` with the appropriate signature in R0:R1.
+
+### SRAM
+
+Internal SRAM sizes range from 32 bytes (ATtiny4/5/9/10) to 16 KB (ATmega2560). The register file occupies the first 32 bytes, followed by the I/O register space (up to 224 bytes), then general-purpose SRAM. The stack grows downward from the top of SRAM. Some devices include extended SRAM accessible through `ELPM`.
+
+### I/O Registers
+
+The standard I/O register space spans 0x0020–0x005F (64 registers). Extended I/O occupies 0x0060–0x00FF. Each register is defined in the device descriptor with its bit-field layout, access type (read/write, read-only, write-only), and reset value. Some registers have special behavior on read — `PINx` registers return the actual pin state, not the output latch.
+
+### EEPROM
+
+EEPROM sizes range from 256 bytes to 4 KB. Access is controlled through `EECR`/`EEARL`/`EEARH`/`EEDR` registers (classic) or the NVM controller (modern devices). VioAVR models the busy-wait behavior of EEPROM write operations, which typically take 3.4 ms per byte at 1 MHz.
+
+---
+
+## Interrupt Model
+
+VioAVR implements the full AVR interrupt model:
+
+- **Vector table** — Fixed-size per device. Vector 0 is the reset vector. ATmega devices use byte addresses; ATtiny devices use word addresses.
+- **Global enable** — `SREG.I` controls global interrupt enable. Per-source enable bits in `EIMSK`, `TIMSK`, `PCMSK`, etc.
+- **Priority** — Lower vector numbers have higher priority. When multiple interrupts are pending, the lowest-numbered is serviced first.
+- **Latency** — Modeled as 4 cycles minimum (3 for the current instruction to complete + 1 for vectoring). Multi-cycle instructions (`LDS`, `STS`, `PUSH`, `POP`) add additional latency.
+- **Nested interrupts** — Supported when re-enabled inside an ISR via `SEI`. Priority is re-evaluated at each enable point.
+- **`RETI`** — Restores `SREG.I` and returns to interrupted code with 4-cycle latency.
+
+### Interrupt Vectors by Peripheral
+
+| Vector | Typical Source | Flag Clearing |
+|---|---|---|
+| 0 | RESET | Hardware (watchdog) |
+| 1–2 | INT0, INT1 (external) | Read ISR flag in EIFR |
+| 3–6 | PCINT0–PCINT2 (pin change) | Read ISR flag in PCIFR |
+| 7–10 | WDT, Timer2, Timer1, Timer0 | Read/clear timer interrupt flags |
+| 11–14 | SPI, USART, ADC, EEPROM | Read/clear peripheral flags |
+| 15+ | TWI, SPM_READY, analog comparator, etc. | Peripheral-specific |
+
+---
+
+## Pin Multiplexing
+
+AVR microcontrollers multiplex multiple peripheral functions onto physical pins. VioAVR models this through a pin mux table in the device descriptor:
+
+- Each physical pin (e.g., PB1) can serve as GPIO, timer output compare, UART TX/RX, SPI MISO/MOSI/SCK, TWI SDA/SCL, ADC input, or external interrupt
+- The mux table defines which peripheral function maps to which pin; only one driver can be active at a time
+- Peripheral output enable overrides the GPIO output register when a peripheral takes control
+- Pin input always reads the actual pad state regardless of which peripheral is driving the output — this allows multiple peripherals to sample the same pin simultaneously
+- `DIDR` (Digital Input Disable Register) prevents excessive power consumption when a pin is used for analog input
+
+The mux is configured at initialization time from the device descriptor and re-evaluated whenever a register write changes a pin function (e.g., setting DDxn, changing timer compare output mode).
+
+---
+
+## JIT Compiler
+
+VioAVR includes a JIT compiler targeting x86-64 that generates native code from AVR instruction sequences at the basic block level.
+
+### Block Cache
+
+Compiled basic blocks are indexed by AVR program counter address. When execution reaches an address not yet compiled, the JIT compiles the basic block starting there. Basic blocks are delimited by branches, interrupt entry points, and I/O access points. The cache has a configurable maximum size (default 64 MB) with LRU eviction.
+
+### `mmap` Code Pages
+
+Native code pages are allocated with `mmap()`:
+
+- `MAP_JIT` (macOS) or executable + writable with `mprotect` toggling (Linux) for self-modifying code support
+- `MAP_PRIVATE | MAP_ANONYMOUS` for private, demand-zero pages
+- `PROT_READ | PROT_WRITE | PROT_EXEC` during compilation, then `PROT_READ | PROT_EXEC` after finalization
+
+Each code page is 4 KB (matching the system page size). When a block is evicted, the corresponding native page is `munmap()`'d.
+
+### Register Mapping
+
+| AVR Resource | x86-64 Mapping |
+|---|---|
+| R0–R7 | Host general-purpose registers (spill-free zone) |
+| R8–R31 | Stack-allocated spill slots in native frame |
+| SREG | Dedicated host register with lazy evaluation |
+| SP | Maintained in memory, synced at block boundaries |
+| PC | Block entry address, updated on exits |
+
+Branch instructions compile to direct jumps within the block cache when the target block is already compiled, or to a trampoline that triggers on-demand compilation. I/O accesses and interrupts are handled by exiting the JIT and returning to the interpreter for one cycle.
+
+---
+
+## GDB Stub
+
+The GDB stub implements the GDB Remote Serial Protocol (RSP) over TCP, enabling source-level debugging of AVR firmware running inside VioAVR.
+
+### Protocol Details
+
+- **Transport** — TCP socket, configurable port (default 3333). Connect from GDB with `target remote localhost:3333`.
+- **Packet format** — Standard RSP: `$packet-data#checksum` with ACK/NACK flow control. Maximum packet size 4 KB.
+- **Register access** — `g`/`G` packets read/write all 32 registers, SREG, SP, and PC. `p`/`P` for individual registers.
+- **Memory access** — `m`/`M` packets access flash, SRAM, and I/O registers through the memory bus.
+- **Breakpoints** — Software breakpoints via `z0`/`Z0`. Implemented by replacing the target instruction with a `BREAK` opcode and storing the original in a shadow table.
+- **Watchpoints** — Write watchpoints (`z2`/`Z2`) and read/write watchpoints (`z3`/`Z3`). The stub checks memory access addresses against active watchpoints after each bus transaction.
+- **Single step** — `s` packet executes one instruction and returns the new PC.
+- **Continue** — `c` packet resumes until a breakpoint, watchpoint, or interrupt.
+- **Flash programming** — `vFlashErase`, `vFlashWrite`, `vFlashDone` allow GDB to program flash through the stub.
+
+### Usage
+
+```bash
+# Terminal 1: start VioAVR with the GDB stub
+vioavr-cli --mcu atmega328p --flash firmware.elf --gdb-port 3333 --gdb-wait
+
+# Terminal 2: connect AVR GDB
+avr-gdb firmware.elf
+(gdb) target remote localhost:3333
+(gdb) break main
+(gdb) continue
+(gdb) info registers
+(gdb) step
+(gdb) x/10x 0x00800100
+```

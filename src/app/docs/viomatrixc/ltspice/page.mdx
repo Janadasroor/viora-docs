@@ -1,0 +1,80 @@
+# LTspice Compatibility
+
+VioMATRIXC includes a compatibility pre-processor that allows LTspice-format netlists to run on the ngspice simulation engine. This is activated with the `--enable-vicompat` configure option and can be turned on dynamically by setting the variable `vicompat=lt` (e.g. `set vicompat=lt` in `.control` or `.spiceinit`).
+
+---
+
+## Netlist Pre-Processing
+
+LTspice uses a fixed-pin positional syntax for its digital and analog behavioral A-device components (typically containing 8 terminals). ngspice's XSPICE digital and analog code models use a different named-connector syntax. The VioMATRIXC compatibility layer automatically translates LTspice positional connections to the format expected by the underlying XSPICE and SPICE engines.
+
+---
+
+## A-Device Transforms
+
+During netlist loading, LTspice A-devices are mapped to corresponding ngspice XSPICE models or B-sources:
+
+### Logic Gates and Buffers
+
+- **`BUF` / `INV`**: Mapped to XSPICE digital models `d_inverter` and `d_buffer`.
+- **`AND` / `OR` / `NAND` / `NOR` / `XOR` / `XNOR`**: Mapped to their respective digital XSPICE models (`d_and`, `d_or`, etc.). Input vector syntax is automatically expanded.
+- **`SCHMITT`**: Mapped to Schmitt-trigger style buffers.
+
+```spice
+* LTspice syntax (8-pin positional)
+A1 n_in 0 0 0 0 0 n_out 0 BUF
+```
+
+### Sequential Elements
+
+- **`DFF` / `JKFF` / `SRFF` / `TFF`**: Mapped to digital flip-flop code models (`d_dff`, `d_jkff`, etc.).
+- **`DLATCH` / `SRLATCH`**: Mapped to latch models (`d_dlatch`, `d_srlatch`).
+
+### Special Mapped Components
+
+- **`COUNTER`**: Mapped to the `d_fdiv` (frequency divider) digital XSPICE code model.
+- **`MODULATOR`**: Mapped to the `modulator` XSPICE analog code model.
+- **`SAMPLEHOLD`**: Mapped to the `samplehold` XSPICE analog code model.
+- **`VARISTOR`**: Mapped to the `varistor` XSPICE analog code model.
+
+- **`OTA` (Operational Transconductance Amplifier)**: Replaced by an analog behavioral current source (`B-source`) with clamping and compliance models:
+  ```spice
+  * Replaces: A1 in+ in- Ref V+ V- out+ out- OTA g=1 iout=10u
+  * Mapped internally to a B-source:
+  B1_ota out+ 0 I = min(max((g * (V(in+) - V(in-))), -iout), iout)
+  ```
+
+---
+
+## WAVEFILE Support
+
+WAV-backed signals are loaded as independent voltage (`V`) or current (`I`) sources during transient simulations. The WAV file is loaded using the `wavefile` (or alias `wave`) parameter directly on the source component.
+
+```spice
+* Set up a voltage source driven by a WAV file
+V1 node_in 0 wavefile="/path/to/stimulus.wav" wavechan=0
+```
+
+### Parameters
+
+- `wavefile` (or `wave`): Path to the WAV file.
+- `wavechan`: The channel index (0 for left/mono, 1 for right in stereo). Defaults to 0.
+
+During transient simulation, VioMATRIXC reads the WAV file, handles sample caching in memory, and performs linear interpolation between sample frames to compute the transient value at each time step.
+
+---
+
+## pwlfile Support
+
+VioMATRIXC enables independent sources to load Piece-Wise Linear (PWL) data directly from external text files. This is configured via the `pwlfile` parameter on voltage or current sources.
+
+```spice
+* Load PWL points from a text file containing space-separated time-value pairs
+V1 input_node 0 pwlfile="measurements.pwl"
+```
+
+### Format
+
+The PWL text file must contain lines of space- or tab-separated `time value` pairs.
+Time values must be strictly increasing. If they are not, VioMATRIXC will issue a warning.
+Using `pwlfile` avoids bloating the main SPICE netlist with thousands of inline coordinates.

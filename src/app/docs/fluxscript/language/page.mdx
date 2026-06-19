@@ -1,0 +1,476 @@
+# Language Reference
+
+FluxScript is a statically-typed, JIT-compiled language with compile-time dimensional analysis, first-class support for circuit simulation, and modern language features including generics, pattern matching, and async/await.
+
+---
+
+## Types
+
+### Primitive Types
+
+| Type | Description | Size |
+| :--- | :--- | :--- |
+| `double` | 64-bit floating point (default numeric type) | 8 bytes |
+| `float` | 32-bit floating point | 4 bytes |
+| `int` | Signed 64-bit integer | 8 bytes |
+| `bool` | Boolean (`true` / `false`) | 1 byte |
+| `void` | No return value | 0 bytes |
+| `complex` | Complex number (double real + double imaginary) | 16 bytes |
+| `string` | Immutable UTF-8 string | Heap-allocated |
+| `fixed` | Fixed-point decimal (configurable precision) | 4 or 8 bytes |
+
+### Composite Types
+
+| Type | Description |
+| :--- | :--- |
+| `matrix` | 2D dense matrix of doubles |
+| `vector` | 1D dense vector of doubles |
+
+```fluxscript
+let A := [1.0, 2.0; 3.0, 4.0]    // 2x2 matrix
+let v := [1.0, 2.0, 3.0]         // 3-element vector
+let det := det(A)                // Matrix determinant (JIT built-in)
+let norm := norm(v)              // L2 norm (JIT built-in)
+```
+
+---
+
+## SI Unit System
+
+FluxScript implements a 7-dimensional SI unit type system that enforces dimensional correctness at compile time. Every physical quantity carries a unit vector across seven base dimensions:
+
+| Dimension | Symbol | SI Base Unit |
+| :--- | :--- | :--- |
+| **Mass** | M | kg |
+| **Length** | L | m |
+| **Time** | T | s |
+| **Current** | I | A |
+| **Temperature** | Θ | K |
+| **Amount** | N | mol |
+| **Luminous Intensity** | J | cd |
+
+### Metric Prefixes
+
+Full SI metric prefixes are recognized: atto (a), femto (f), pico (p), nano (n), micro (u), milli (m), centi (c), deci (d), deca (da), hecto (h), kilo (k), mega (M), giga (G), tera (T), peta (P), exa (E).
+
+### Built-in Units
+
+```fluxscript
+let voltage     := 3.3V            // V = kg m^2 s^-3 A^-1
+let current     := 100mA           // A
+let resistance  := 10kOhm          // Ohm = V/A
+let capacitance := 100nF           // F = s^4 A^2 m^-2 kg^-1
+let inductance  := 10mH            // H = V s / A
+let frequency   := 2.4GHz          // Hz = s^-1
+let power       := 1W              // W = V A
+let energy      := 1J              // J = W s
+let temperature := 300K            // K
+let voltage_drop := 0.7V           // Forward voltage
+```
+
+### Derived and Compound Units
+
+```fluxscript
+unit Newton = kg m s^-2
+unit Pascal = N m^-2
+unit Watt   = V A
+unit Joule  = W s
+unit Ohm    = V / A
+```
+
+---
+
+## Variables
+
+```fluxscript
+// Mutable variable
+var x := 10.0
+x = 20.0        // OK
+
+// Immutable binding
+let pi := 3.14159265358979
+// pi = 3.0   // Compile error: cannot reassign let binding
+
+// Type annotation (usually inferred)
+var frequency: double = 1e6
+let speed_of_light: double = 299792458.0
+```
+
+---
+
+## Functions
+
+```fluxscript
+// Basic function
+def add(a: double, b: double) -> double {
+    return a + b
+}
+
+// Expression body (implicit return)
+def square(x: double) -> double {
+    x * x
+}
+
+// Generic function with constraint bounds
+def clamp[T](val: T, lo: T, hi: T) -> T {
+    if (val < lo) { lo }
+    elif (val > hi) { hi }
+    else { val }
+}
+
+// Function with unit parameters
+def vdrop(id: double, r: double) -> double {
+    id * r
+}
+```
+
+---
+
+## Control Flow
+
+### Conditionals
+
+FluxScript supports both statement-based conditionals with braces and expression-based conditionals with `then`/`else`.
+
+```fluxscript
+// Statement-based conditional (requires braces and parentheses)
+if (temperature > 373.0) {
+    warn("Water boiling")
+} elif (temperature > 273.0) {
+    info("Liquid phase")
+} else {
+    warn("Freezing")
+}
+
+// Expression-based conditional
+let state = if temp > 300.0 then 1.0 else 0.0
+```
+
+### Loops
+
+```fluxscript
+// C-style For loop (statement-based)
+for (var i := 0.0; i < 100.0; i = i + 1.0) {
+    process(i)
+}
+
+// Expression-based For-in loop
+// for id in start, end, step do expr
+let sum = for i in 1.0, 10.0, 1.0 do i
+
+// While loop (statement-based)
+var i := 0.0
+while (i < 100.0) {
+    process(i)
+    i = i + 1.0
+}
+
+// Expression-based While loop
+// while cond do expr
+while running() do tick()
+
+// Do-while (statement-based)
+var x := 0.0
+do {
+    x = newton_raphson(x)
+} while (abs(x - target) > 1e-12)
+
+// Repeat-until (statement-based)
+var attempts := 0.0
+repeat {
+    attempts = attempts + 1.0
+    let result = try_solve()
+} until (result.converged || attempts > 1000.0)
+```
+
+### Switch / Match
+
+```fluxscript
+// Switch statement (braces and case/default sections)
+switch (mode) {
+    case "dc":
+        run_dc_analysis()
+    case "ac":
+        run_ac_analysis()
+    case "tran":
+        run_tran_analysis()
+    default:
+        error("Unknown analysis mode")
+}
+
+// Pattern matching (uses `->` arrows inside braces)
+match result {
+    Result.Ok(value) -> process(value),
+    Result.Err(msg) -> log_error(msg),
+    default -> "unknown"
+}
+
+// Or-patterns
+match component {
+    Component.Resistor | Component.Inductor | Component.Capacitor -> add_passive(component),
+    Component.Diode | Component.BJT | Component.MOSFET -> add_active(component),
+    default -> error("unknown component")
+}
+```
+
+---
+
+## Object-Oriented Programming
+
+### Structs
+
+```fluxscript
+struct Resistor {
+    resistance: double
+    tolerance: double
+}
+
+impl Resistor {
+    def nominal(self) -> double {
+        self.resistance
+    }
+
+    def get_range(self) -> Stats {
+        let lo = self.resistance * (1.0 - self.tolerance)
+        let hi = self.resistance * (1.0 + self.tolerance)
+        Stats { min: lo, max: hi, avg: self.resistance, count: 2.0 }
+    }
+}
+```
+
+### Enums
+
+```fluxscript
+enum AnalysisMode {
+    DC,
+    AC,
+    Transient,
+    Noise
+}
+```
+
+### Classes
+
+```fluxscript
+class Circuit {
+    components: Double   // Array/List handle
+    nodes: Double        // Map handle
+
+    def add_component(self, c: Double) {
+        // Class method implementation
+    }
+
+    def node_count(self) -> double {
+        10.0
+    }
+}
+```
+
+### Traits
+
+```fluxscript
+trait Shape {
+    def area(self) -> double
+    def name(self) -> string
+}
+
+impl Shape for Circle {
+    def area(self) -> double {
+        3.14159 * self.radius * self.radius
+    }
+
+    def name(self) -> string {
+        "Circle"
+    }
+}
+```
+
+---
+
+## Generics
+
+```fluxscript
+// Bracket syntax for type parameters in function definitions
+def describe_area[T: Shape](s: T) -> string {
+    s.name() + " area = " + flux_double_to_string(s.area())
+}
+
+// Dynamic dispatch using trait objects
+def dyn_area(s: dyn Shape) -> double {
+    s.area()
+}
+```
+
+---
+
+## References and Lifetimes
+
+```fluxscript
+// Immutable reference
+def peek(node: &Node) -> double {
+    node.voltage
+}
+
+// Mutable reference
+def charge(cap: &mut Capacitor, q: double) {
+    cap.charge = q
+}
+
+// Lifetime annotations
+def longest<'a, 'b: 'a>[T](a: &'a T, b: &'b T) -> &'a T {
+    if a.value() > b.value() then a else b
+}
+```
+
+---
+
+## Async / Await
+
+```fluxscript
+// Async function
+async def fetch_data(url: string) -> string {
+    let response = await flux_fetch_url(url)
+    response
+}
+```
+
+---
+
+## Operators
+
+### Element-wise Operators
+
+```fluxscript
+let A := [1.0, 2.0; 3.0, 4.0]
+let B := [5.0, 6.0; 7.0, 8.0]
+
+let C := A .+ B       // Element-wise add
+let D := A .* B       // Element-wise multiply
+let E := A ./ B       // Element-wise divide
+let F := A .^ 2.0     // Element-wise power
+```
+
+### Pipe Operator
+
+```fluxscript
+let result = data
+    |> filter(fn(x): x > 0.0)
+    |> map(fn(x): x * 2.0)
+    |> sum()
+```
+
+---
+
+## Circuit DSL
+
+FluxScript includes a domain-specific language for circuit description and analysis:
+
+```fluxscript
+// Circuit definition
+subckt low_pass(in, out) {
+    param f0 = 1kHz, Q = 0.707
+    let w0 = 2.0 * pi() * f0
+    let R1 = 1.0 / (w0 * Q)
+    let C1 = Q / (w0 * R1)
+
+    // Component declarations (R1, C1 connected to nodes)
+    R1 in out R1
+    C1 out 0 C1
+}
+
+// Analysis commands (SPICE AST declarations)
+analysis dc
+analysis ac(f_start=1Hz, f_stop=1GHz, points=1000)
+analysis tran(t_step=1ns, t_stop=10ms)
+
+// Measurements
+measure gain_db = db(v(out)) @ 1kHz
+measure phase_deg = phase(v(out)) @ 1kHz
+
+// Probing
+probe v(in), v(out), i(R1)
+
+// Corner analysis block
+corner process {
+    fast: 0.9,
+    slow: 1.1,
+    nominal: 1.0
+}
+
+// Optimization declaration block
+optimize low_pass {
+    goals ripple = min
+    tune R1, C1
+    algorithm gradient_descent
+    runs 500
+}
+
+// Analog behavioral blocks
+let v_out = ddt(v_cap) / C           // Derivative
+let i_cap = idt(v_cap / R) * C      // Integral
+
+// B-source
+b_reactance: v = 1 / (2 * PI * freq * C)
+```
+
+---
+
+## Symbolic Math
+
+```fluxscript
+symbolic x, y
+let expr = x^2 + 3*x*y + y^2
+let simplified = simplify(expr)
+let d_dx = differentiate(expr, x)
+let J = jacobian([f1, f2], [x, y])
+```
+
+---
+
+## AI / ML Primitives
+
+```fluxscript
+// Creating a neural network layers configuration
+let layers = [2.0, 64.0, 32.0, 1.0]
+let model = flux_nn_create(layers, 4.0)
+
+// Training a model
+train(model, training_inputs, training_outputs, 100)
+
+// Prediction
+predict(model, test_input)
+
+// Goal-directed optimization using the trained model
+let g = goal(predict(model, x), y)
+```
+
+---
+
+## Mixed-Signal Primitives
+
+```fluxscript
+// Above detection (analog comparator threshold behavior)
+let is_high = above(v(signal), 2.5)
+
+// Cross detection (detect rising crossing of zero/threshold)
+let cross_signal = cross(v(analog) - 2.5, 1)
+
+// Timer
+let elapsed_time = timer() // Get current simulation timer value
+
+// Edge detection (1 = rising, -1 = falling, 0 = either)
+let rising_edge = posedge(v(digital))
+let falling_edge = negedge(v(digital))
+
+// Finite state machine controller
+let state_idle = 0.0
+let state_charging = 1.0
+let state_done = 2.0
+
+let fsm_ctrl = fsm(state_idle, [
+    { state_idle, state_charging, start_btn == 1.0, 0.0 },
+    { state_charging, state_done, battery_voltage >= 4.2, 1.0 },
+    { state_done, state_idle, reset_btn == 1.0, 0.0 }
+], "moore")
+```
+

@@ -1,0 +1,108 @@
+# Simulator
+
+VioraEDA includes a built-in SPICE simulator with a custom MNA (Modified Nodal Analysis) matrix solver. It operates independently of any external SPICE engine for its core analysis types, and delegates to VioMATRIXC (the ngspice fork) for full SPICE compatibility and advanced device models.
+
+## Architecture
+
+The simulator follows a strict three-tier design to keep the core portable and independently testable:
+
+1. **Frontend** — The Qt6 UI layer: triggers simulation runs, configures analysis parameters, generates the netlist from the schematic, and streams results to the waveform viewer.
+2. **Core** — Pre-processing, JIT compilation of FluxScript behavioral blocks, netlist validation, and handoff to the selected backend. This layer has **zero Qt dependencies** and no external libraries beyond the STL — it is pure C++ and fully unit-testable.
+3. **Backend** — The simulation engine. Either the internal MNA solver (for basic analyses) or VioMATRIXC (for full SPICE fidelity). Results are streamed back to the frontend via C-style callbacks.
+
+### Design Constraints
+
+- The `core/` module has no dependency on Qt, ngspice, Eigen, or BLAS
+- Numerical stability is enforced through partial pivoting and division-by-zero guards
+- All analysis types are covered by unit tests
+
+## Supported Analyses
+
+| Analysis | SPICE Card | Description |
+|---|---|---|
+| DC Operating Point | `.op` | Newton-Raphson iteration with convergence check |
+| DC Sweep | `.dc` | Source or parameter sweep across a defined range |
+| AC Small-Signal | `.ac` | Frequency sweep with complex MNA formulation |
+| Transient | `.tran` | Time-domain simulation with Backward Euler / Trapezoidal companion models |
+| Noise | `.noise` | Output noise spectral density computation |
+| Distortion / THD | `.four` | Total harmonic distortion via Fourier post-processing |
+| Monte Carlo | — | Statistical analysis with random component tolerances |
+| Sensitivity | — | Parameter sensitivity via the direct method |
+| Parametric Sweep | — | Multi-parameter sweep across a defined grid |
+| Optimization | — | Gradient-descent circuit optimization with weighted targets |
+| FFT | — | Spectral analysis post-processing |
+| Real-Time | — | Live interactive simulation with streaming results |
+| S-Parameter | `.sp` | RF extraction with Smith Chart visualization |
+| PSS | — | Periodic steady-state analysis *(experimental)* |
+
+## Component Models
+
+| Component | Model | Details |
+|---|---|---|
+| Resistor | Linear | V = I × R |
+| Capacitor | Companion | I = C × dV/dt — Backward Euler or Trapezoidal |
+| Inductor | Companion | V = L × dI/dt |
+| Voltage Source | DC/AC/Pulse/Sine | Branch equation with MNA stamp |
+| Current Source | DC/AC/Pulse/Sine | RHS injection |
+| Diode | Shockley | I = Is × (exp(V/Vt) − 1) |
+| BJT | Ebers-Moll | NPN/PNP with substrate |
+| MOSFET | Level 1 | Shichman-Hodges model |
+| VCCS / VCVS | — | Transconductance and voltage amplifier |
+| OTA | B-source | LTspice-compatible auto-translation |
+| Logic Gates | AND/OR/NAND/NOR/XOR/NOT | XSPICE code models |
+| Flip-Flops | DFF/JKFF/SRFF/TFF/D-Latch | Event-driven digital models |
+| FluxScript | JIT | Behavioral blocks compiled via LLVM |
+| SystemVerilog | Slang JIT | RTL-level co-simulation |
+
+## Convergence Strategy
+
+The simulator uses a multi-stage convergence strategy. If the first stage fails, it automatically falls back to the next:
+
+1. **Direct Newton-Raphson** — Standard iterative solver; fastest path for well-conditioned circuits
+2. **GMIN Stepping** — Injects a small conductance to ground to regularize the matrix, then steps it toward zero
+3. **Source Stepping** — Ramps all independent sources from zero to their final value, following convergence at each step
+4. **OPTran Fallback** — Raised-cosine transient ramp; forces convergence in circuits where the DC OP is difficult to find directly
+
+### Convergence Failure Classes
+
+When convergence fails, the diagnostic panel reports one of the following error classes to help identify the root cause:
+
+| Class | Diagnostic Message | Severity |
+|---|---|---|
+| Netlist mapping | `Simulator mapping warnings` | Medium |
+| Structural singularity | `Singular MNA matrix` | High |
+| DC OP non-convergence | `DC OP failed to converge` | High |
+| Newton-Raphson stall | `Simulator NR Failure` | High |
+| Transient rejection | `reject(nonconverged)` | High |
+
+## Measurement System
+
+The waveform viewer supports 20 post-processing measurement functions:
+
+`FIND`, `DERIV`, `PARAM`, `MAX`, `MIN`, `PP`, `AVG`, `RMS`, `N`, `INTEG`, `MIN_AT`, `MAX_AT`, `FIRST`, `LAST`, `DUTY`, `SLEWRATE` (rise and fall), `FREQ`, `PERIOD`, `TRIG_TARG`
+
+All measurements support `FROM/TO` time windows, `RISE/FALL` trigger conditions, and conditional expressions.
+
+## Mixed-Signal Co-Simulation
+
+VioraEDA handles digital and analog domains in a unified simulation engine:
+
+- **`LogicComponent`** — Digital logic abstraction with configurable propagation delay models
+- **`NetlistManager`** — Assembles the mixed-signal netlist and automatically inserts ADC/DAC bridge components at analog/digital boundaries
+- **`SpiceWorkerThread`** — Runs the VioMATRIXC backend in a background thread, streaming results and handling digital event synchronization
+
+## RF Analysis
+
+When an S-parameter analysis is configured, the simulator computes the full scattering parameter matrix and provides:
+
+- S → Y → S and S → Z parameter transformations
+- Impedance-to-reflection-coefficient (Γ) conversions
+- Rollett stability factor (K) for amplifier stability analysis
+- Smith Chart visualization of port impedances
+
+## Integration Modes
+
+| Mode | Description |
+|---|---|
+| **Process Mode** | Standard batch simulation; netlist written to disk and executed as a subprocess |
+| **Shared Library Mode** | VioMATRIXC loaded in-process as `libngspice.so`; enables real-time interactive parameter tuning without relaunching the simulation |

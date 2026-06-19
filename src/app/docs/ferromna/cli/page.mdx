@@ -1,0 +1,194 @@
+# CLI Reference
+
+FerroMNA provides a unified command-line interface for running simulations, debugging circuits, and interactive exploration. All commands are accessed through the `ferromna` binary.
+
+## Synopsis
+
+```
+ferromna [OPTIONS] [FILE]
+ferromna <COMMAND>
+```
+
+---
+
+## Commands
+
+### `sim` — Smart Simulation *(recommended)*
+
+Runs all analyses defined in a SPICE netlist and writes decimated terminal output. This is the primary entry point for scripted and CI workflows.
+
+```bash
+ferromna sim circuit.sp
+ferromna sim circuit.sp -o results.csv
+ferromna sim circuit.sp --format raw -o results.raw
+```
+
+| Option | Description |
+|---|---|
+| `-o, --output <file>` | Save results to a file |
+| `-F, --format <fmt>` | Output format: `csv` (default), `raw`, `rawplot`, `dat` |
+| `--wav-output <file>` | Export the transient waveform as a 16-bit WAV file |
+| `--wav-node <node>` | Node to export as audio (default: `out`) |
+| `--wav-rate <hz>` | Audio sample rate (default: 44100 Hz) |
+| `--wav-amp <scale>` | Amplitude scaling factor (default: 1.0) |
+| `--dc` | Perform DC operating point analysis only |
+| `--nodes <list>` | Comma-separated list of nodes to display in terminal output |
+| `-v, --verbose` | Print verbose solver state at each Newton-Raphson iteration |
+
+---
+
+### `run` / `dc` — DC Operating Point
+
+Computes the DC operating point of a circuit and prints node voltages.
+
+```bash
+ferromna run circuit.sp
+ferromna run circuit.sp -o output.raw
+```
+
+---
+
+### `run-netlist` — Full Netlist Analysis
+
+Parses and executes every analysis card defined in the netlist (`.op`, `.ac`, `.tran`, `.noise`, etc.) in sequence.
+
+```bash
+ferromna run-netlist circuit.sp
+```
+
+---
+
+### `repl` — Interactive Shell
+
+Launches an interactive REPL for incrementally building and probing circuits. Supports tab completion for commands, node names, and `V(nodename)` expressions.
+
+```bash
+ferromna repl
+ferromna repl circuit.sp
+```
+
+**REPL Commands:**
+
+| Command | Description |
+|---|---|
+| `source <file>` | Load a SPICE netlist into the session |
+| `.tran <tstep> <tstop>` | Run a transient analysis |
+| `.op` | Compute the DC operating point |
+| `plot V(<node>)` | Render an ASCII waveform chart (14×70 unicode) |
+| `.print [V(n)...]` | Print node voltages in a table |
+| `.meas` | Display all defined measurements and their results |
+| `.help [topic]` | Show built-in help for a command or analysis type |
+| `.quit` / `.exit` | Exit the REPL |
+
+---
+
+### `gui` — FerroScope GUI
+
+Launches the egui-based interactive oscilloscope and netlist editor. FerroScope provides real-time simulation, dual-cursor waveform analysis, and interactive component controls.
+
+```bash
+ferromna gui
+ferromna gui circuit.sp
+```
+
+**GUI capabilities:**
+
+- Interactive SPICE netlist editor with syntax highlighting
+- Real-time waveform display with zoom and pan
+- Dual cursors with delta measurements (Δx, Δy, slope, frequency)
+- FFT mode for frequency-domain analysis
+- Interactive controls: potentiometers, switches, and sliders linked to component values
+- CSV clipboard export and WAV audio export
+- Min-max decimation for smooth rendering at large timescales
+
+---
+
+### `va-compile` — Verilog-A Compiler
+
+Compiles a Verilog-A `.va` model file to a shared library that FerroMNA can load as a device model. Requires the `llvm` feature flag at build time.
+
+```bash
+ferromna va-compile model.va -o model.so
+```
+
+---
+
+### `docs` / `help-topic` — Built-in Documentation
+
+Displays built-in reference documentation for analysis types, device model parameters, and SPICE directives.
+
+```bash
+ferromna docs bsim4
+ferromna docs .tran
+ferromna docs noise
+```
+
+---
+
+### `example` — Search and Run Examples
+
+Searches the bundled example library by keyword and prints the matching file paths.
+
+```bash
+ferromna example bjt
+ferromna example bsim4
+ferromna example boost
+```
+
+---
+
+## Output Formats
+
+| Format | Flag | Description |
+|---|---|---|
+| CSV | `--format csv` | Comma-separated values with a header row (default) |
+| Raw (binary) | `--format raw` | ngspice-compatible binary raw file |
+| RawPlot (ASCII) | `--format rawplot` | ngspice ASCII rawplot format |
+| DAT | `--format dat` | Gnuplot-compatible two-column data |
+| WAV | `--wav-output <file>` | 16-bit PCM audio from a transient waveform |
+| Touchstone | automatic | S-parameter `.sNp` export (generated when an `.SP` analysis is present) |
+
+---
+
+## Example Circuits
+
+FerroMNA ships with 120+ example circuits. The following are good starting points:
+
+```bash
+# BJT differential pair — transient and AC analysis
+ferromna examples/bjt_diff_pair.sp
+
+# MOSFET Level 3 common-source amplifier — AC gain
+ferromna examples/mos_level3_cs_amp.sp
+
+# BSIM4 amplifier — industry-standard model
+ferromna examples/bsim4_cs_amp.sp
+
+# VDMOS boost converter — switching power supply
+ferromna examples/vdmos_boost_converter.sp
+
+# Digital counter with DAC — mixed-signal XSPICE
+ferromna examples/counter_dac_rc.sp
+```
+
+---
+
+## SPICE Netlist Format
+
+FerroMNA parses standard SPICE netlists. The following example demonstrates a combined AC and transient analysis:
+
+```spice
+* RC Low-Pass Filter
+V1 in 0 DC 5 AC 1
+R1 in out 1k
+C1 out 0 1u
+
+.ac dec 10 1 1Meg
+.tran 1u 10m
+.print ac V(out)
+.end
+```
+
+### Supported Directives
+
+`.DC`, `.AC`, `.TRAN`, `.PARAM`, `.MODEL`, `.SUBCKT` / `.ENDS`, `.IC` / `.NODESET`, `.MEAS`, `.PRINT`, `.INCLUDE` / `.LIB`, `.STEP`, `.ALTER`, `.CONTROL` / `.ENDC`, `.TEMP`, `.OPTIONS`, `.GLOBAL`, `.FOUR`, `.NOISE`, `.SENS`, `.PZ`, `.TF`, `.SP`, `.HB`, `.MC`, `.OPTIMIZE`

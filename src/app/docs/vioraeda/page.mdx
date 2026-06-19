@@ -1,0 +1,170 @@
+# VioraEDA Overview
+
+VioraEDA is a professional open-source Electronic Design Automation suite built with C++20 and Qt6. It provides an integrated environment for schematic capture, PCB layout, mixed-mode SPICE simulation, and AI-assisted circuit design — all within a single application.
+
+![VioraEDA Schematic Editor](/images/vioraeda/single-vdmos-motor-deiver.png)
+
+## Core Modules
+
+| Module | Description |
+|---|---|
+| **Schematic Editor** | 58 component types, hierarchical sheets, automatic wire routing, and SPICE netlist generation |
+| **PCB Layout Editor** | Full board designer with copper pours, auto-router, DRC engine, and 3D OpenGL preview |
+| **SPICE Simulator** | Built-in DC, AC, transient, noise, THD, and optimization analysis via MNA matrix solver |
+| **Symbol & Footprint Editors** | Create and manage custom schematic symbols and PCB footprints with parametric templates |
+| **Gemini AI Co-Pilot** | Context-aware AI assistant for component suggestions, circuit review, and ERC/DRC debugging |
+| **FluxScript Extensions** | JIT-compiled scripting with 27+ widget functions for custom tooling and behavioral blocks |
+
+## Simulation & Virtual Instrumentation
+
+VioraEDA provides a professional-grade, interactive simulation environment that replicates the experience of a physical electronics laboratory.
+
+![VioView Oscilloscope with Measurements](/images/vioraeda/analog-osc-dock-with-measurments-tools.png)
+
+### Analysis Types
+
+| Analysis | SPICE Card | Description |
+|---|---|---|
+| DC Operating Point | `.op` | Finds steady-state solution via Newton-Raphson iteration |
+| DC Sweep | `.dc` | Sweeps a source or parameter across a defined range |
+| AC Small-Signal | `.ac` | Frequency-domain analysis with complex MNA formulation |
+| Transient | `.tran` | Time-domain simulation with adaptive timestep control |
+| Noise | `.noise` | Output noise spectral density computation |
+| Distortion / THD | `.four` | Total harmonic distortion post-processing |
+| Parametric Optimization | — | Gradient-descent circuit optimization |
+| Monte Carlo | — | Statistical analysis with random component tolerances |
+| Sensitivity | — | Parameter sensitivity analysis (direct method) |
+| Real-Time | — | Live interactive simulation with streaming results |
+| S-Parameter | `.sp` | RF S-parameter extraction with Smith Chart |
+| FFT | — | Fast Fourier Transform post-processing |
+
+![Simulation in Action](/images/vioraeda/simple-audio-source-simulation.png)
+
+### Supported Components
+
+| Category | Components |
+|---|---|
+| Passives | Resistor, Capacitor, Inductor, Potentiometer, Transformer, Coupled Inductor |
+| Sources | Voltage Source (DC/SINE/PULSE/PWL/EXP/WAV), Current Source, Behavioral B-Source |
+| Controlled | VCCS (G), VCVS (E), CCCS (F), CCVS (H), OTA (A) — LTspice-compatible |
+| Semiconductors | Diode (Shockley), BJT NPN/PNP (Ebers-Moll), MOSFET NMOS/PMOS (Level 1), JFET, MESFET |
+| Switches | Voltage-controlled switch, Current-controlled switch |
+| Transmission Lines | Quasi-static T-line, Lossy LTRA, Coupled multiconductor |
+| Digital | AND, OR, XOR, NAND, NOR, NOT gates; DFF, JKFF, SRFF, TFF, D-Latch |
+| Mixed-Signal | ADC/DAC bridges, SystemVerilog blocks (Slang JIT), XSPICE code models |
+| Instruments | Oscilloscope, Logic Analyzer, Virtual Terminal, Signal Generator |
+
+### Measurement System
+
+The waveform viewer includes 20 measurement functions: `FIND`, `DERIV`, `PARAM`, `MAX`, `MIN`, `PP`, `AVG`, `RMS`, `N`, `INTEG`, `MIN_AT`, `MAX_AT`, `FIRST`, `LAST`, `DUTY`, `SLEWRATE`, `FREQ`, `PERIOD`, `TRIG_TARG`. All functions support `FROM/TO` windows and `RISE/FALL` trigger conditions.
+
+### Virtual Instruments
+
+- **Real-Time Oscilloscope** — 4-channel display with CRT-inspired interface, 1 mV to 1000 V/div scaling, 1 ns/div timebase, and edge triggering
+- **Logic Analyzer** — Digital signal timing analysis with configurable sample depth
+- **Smart Probe** — Hover over any wire to read the instantaneous voltage in real-time
+- **Smith Chart** — RF impedance visualization for S-parameter analysis
+- **Waveform Drawer** — Graphically draw custom PWL waveforms for use as sources
+
+## Independent Signal Sources
+
+![Source Configuration](/images/vioraeda/independent-source-dialog.png)
+
+VioraEDA supports the full SPICE source function set plus several graphical extensions:
+
+- **Standard SPICE** — DC, AC, SIN, PULSE, PWL, EXP, SFFM, AM, WAV playback
+- **Waveform Drawer** — Draw arbitrary waveforms graphically; they are converted to PWL automatically
+- **Equation-Based Generation** — Full math expression parser for precise signal shaping
+- **Signal Processing** — Smoothing, noise injection, inversion, and mirroring
+
+![Waveform Drawer](/images/vioraeda/waveform-drawer-editor.png)
+
+## Digital Logic Simulation
+
+![Digital Simulation](/images/vioraeda/digital-circuit-simulation-results.png)
+
+VioraEDA supports three levels of digital simulation:
+
+- **XSPICE Integration** — Full code model library (`digital.cm`, `analog.cm`, `spice2poly.cm`) for gate-level digital elements
+- **SystemVerilog Co-Simulation** — RTL-level design via the Slang JIT pipeline, enabling behavioral HDL blocks directly in the schematic
+- **Mixed-Signal Bridges** — Automatic ADC and DAC bridge insertion at analog/digital boundaries
+
+## AI-Native Engineering
+
+![AI Co-Pilot](/images/vioraeda/ai-co-pilot-panel.png)
+
+- **Gemini AI Co-Pilot** — Context-aware assistant embedded in the schematic editor for ERC/DRC debugging, component lookup, and snippet generation
+- **MCP Server** — 17 tools for AI IDE integration (Claude, Gemini, Cursor); exposes schematic queries, simulation control, and rendering to external AI agents
+- **ML Dataset API** — HTTP API for concurrent batch simulation and JSONL dataset export for training circuit models
+- **AI Style Transfer** — 7 schematic style presets (TI, ADI, LTspice, IEC, Military, Modern, Vintage)
+
+## Interactive Design Suite
+
+- **Schematic Capture** — High-FPS editor with 58 component types and 19 tools
+
+![Symbol Editor](/images/vioraeda/symbol-editor.png)
+
+- **PCB Layout** — Full board designer with 16 tools and 10 analysis engines
+
+![Footprint Editor](/images/vioraeda/footprint-editor.png)
+
+- **Project Management** — Centralized multi-file project system with undo/redo history and serialization
+
+![Project Manager](/images/vioraeda/project-manager-window.png)
+
+## CLI Tool (`viora`)
+
+The `viora` CLI exposes 40+ commands for headless automation and CI integration:
+
+```bash
+viora netlist-run circuit.cir --analysis tran    # Run a simulation
+viora schematic-render design.flxsch out.png     # Render a schematic to PNG
+viora symbol-import kicad lib/ out/              # Import KiCad symbols
+viora schematic-bom design.flxsch               # Generate a Bill of Materials
+viora flux run script.flux                       # Execute a FluxScript script
+viora audit project/                             # Run ERC/DRC on a project
+```
+
+## Architecture
+
+VioraEDA is organized into eight modules, each with a defined responsibility boundary:
+
+| Module | Purpose |
+|---|---|
+| `core` | Project management, undo/redo, serialization |
+| `schematic` | 419 source files: editor, 58 items, 19 tools, 70 dialogs |
+| `pcb` | 159 source files: layout, 8 items, 16 tools, 12 dialogs |
+| `simulator` | MNA solver, 14 analysis types, mixed-mode engine, synthesis |
+| `symbols` | Symbol editor, KiCad/LTspice import |
+| `footprints` | Footprint editor, IPC-compliant pad generation |
+| `ui` | Qt6 GUI, theming, property editors |
+| `python` | MCP server, AI pipeline, ML dataset API |
+
+## Dependencies
+
+| Dependency | Role |
+|---|---|
+| **VioMATRIXC** | ngspice-derived SPICE engine with LTspice compatibility |
+| **FluxScript** | JIT-compiled scripting for behavioral simulation blocks |
+| **Slang** | SystemVerilog parser for mixed-mode RTL co-simulation |
+| **nanobind** | Python ↔ C++ binding layer for the MCP server |
+| **Eigen3** | Linear algebra for the MNA matrix solver |
+
+## Build
+
+```bash
+git clone https://github.com/Janadasroor/VioraEDA.git
+cd VioraEDA
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+```
+
+## Platforms
+
+- Linux (Ubuntu 22.04+, AppImage available)
+- macOS (13 Ventura+)
+- Windows 10/11 (MSVC 2022, MinGW-w64)
+
+## License
+
+Apache License 2.0 — Created by Janada Sroor

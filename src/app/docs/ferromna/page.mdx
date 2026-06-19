@@ -1,0 +1,60 @@
+# FerroMNA
+
+FerroMNA is a high-performance, from-scratch SPICE-compatible circuit simulation engine written in Rust. It implements Modified Nodal Analysis (MNA) and supports 16 analysis types, 43+ device models, and a full SPICE netlist parser — all within a single self-contained executable.
+
+**582 Rust source files · 289,000+ lines of code · 43+ device models · 16 analysis types**
+
+## Why FerroMNA?
+
+FerroMNA was built to address limitations in existing open-source SPICE implementations:
+
+- **Fast** — Up to 3× faster than ngspice on equivalent BJT circuits, due to an efficient sparse LU solver, lazy Jacobian evaluation, and Rust's zero-overhead abstractions
+- **Accurate** — Validated against ngspice and LTspice with less than 0.1% deviation on standard benchmark circuits
+- **Modern** — Written in safe Rust with no undefined behavior, no manual memory management, and a clean modular architecture
+- **Extensible** — FluxScript JIT behavioral models, Verilog-A compilation via LLVM, and the OSDI open-source device interface
+- **Cross-platform** — Runs on Linux, macOS, Windows, and Android
+
+## Analysis Types (16)
+
+| Analysis | SPICE Card | Description |
+|---|---|---|
+| DC Operating Point | `.op` | Newton-Raphson with convergence aids (GMIN stepping, source stepping, line search) |
+| DC Sweep | `.dc` | Sweeps a source across a range; single or dual source |
+| AC Small-Signal | `.ac` | Frequency sweep (DEC/LIN/OCT) with complex MNA formulation |
+| Transient | `.tran` | Backward Euler/Trapezoidal integration with adaptive LTE timestep control |
+| Harmonic Balance | `.hb` | Multi-tone RF analysis in the frequency domain via FFT |
+| Noise | `.noise` | Output noise spectral density using the adjoint method |
+| Pole-Zero | `.pz` | Complex-plane pole/zero extraction via eigenvalue decomposition |
+| Sensitivity | `.SENS` | DC and AC parameter sensitivity (direct method, ngspice-compatible) |
+| Optimization | `.OPTIMIZE` | Gradient-descent circuit optimization with weighted targets |
+| Monte Carlo | `.MC` | Statistical analysis with Gaussian and uniform parameter tolerances |
+| FFT / Spectral | — | Frequency spectrum with Hann, Hamming, and Blackman windowing |
+| S-Parameter | `.SP` | S-parameter extraction with Z/Y/S conversions and mixed-mode ports |
+| X-Parameters | — | Large-signal characterization via harmonic balance perturbation |
+| Distortion | `.DISTO` | HD2/HD3 and IM2/IM3 harmonic and intermodulation distortion |
+| Transfer Function | `.TF` | DC gain, input impedance, and output impedance |
+| Step Sweep | `.STEP` | Parameter step sweep (LIST or START/STOP/INC) |
+
+## Quick Start
+
+```bash
+# Build from source
+git clone https://github.com/ferromna/ferromna.git
+cd ferromna
+cargo build --release
+
+# Run a simulation
+ferromna examples/bjt_diff_pair.sp
+
+# Launch the interactive GUI
+ferromna gui
+
+# Start the interactive REPL
+ferromna repl
+```
+
+## Next Steps
+
+- [Features](/docs/ferromna/features) — Complete analysis type and device model reference
+- [CLI Reference](/docs/ferromna/cli) — All commands, flags, and output formats
+- [Getting Started](/docs/ferromna/getting-started) — Installation, first simulation, and library usage

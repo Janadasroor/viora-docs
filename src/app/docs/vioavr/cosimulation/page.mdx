@@ -1,0 +1,224 @@
+# Co-simulation
+
+VioAVR provides first-class co-simulation support, enabling mixed-signal simulation where AVR firmware interacts with analog circuitry modeled in SPICE. This is essential for simulating systems where the microcontroller interfaces with analog sensors, power electronics, communication buses, or any circuit where digital and analog domains interact.
+
+---
+
+## d_cosim — XSPICE Code Model
+
+The `d_cosim` code model is an in-process co-simulation bridge that embeds VioAVR directly inside the ngspice/VioMATRIXC simulator. It appears as a digital SPICE instance in the netlist and communicates with the VioAVR core through shared memory.
+
+### Capabilities
+
+* **In-Process Operation:** No separate process boundaries or TCP overhead. The AVR simulation executes directly inside the SPICE engine's address space, enabling zero-copy data exchange and cycle-by-cycle lock-step synchronization.
+* **Multi-MCU Simulation:** Supports up to 8 independent chips per netlist. Multiple AVR instances can run concurrently, each with unique MCU configurations and firmware files, allowing you to simulate multi-node architectures sharing SPI, TWI, or custom buses.
+* **Digital I/O Pins:** GPIO pins are exposed to the SPICE circuit as XSPICE digital nodes. Input pins sample analog voltages and convert them to logic levels using configurable logic-level thresholds. Output pins drive the analog network using active voltage sources.
+* **Analog I/O Channels:** Using analog bridge models, continuous voltage values are exchanged between the SPICE circuit and the AVR's ADC, DAC, and analog comparator peripherals.
+* **Shared Memory Bridge:** Low-overhead inter-domain communication utilizes POSIX shared memory with semaphore-based synchronization for deterministic execution.
+
+### Netlist Syntax
+
+```spice
+* Example: ATmega328P driving an LED through a resistor
+.include "atmega328p.csd"
+
+XAVR0 VCC GND PA0 PA1 PA2 PA3 PA4 PA5 PA6 PA7
++ PB0 PB1 PB2 PB3 PC0 PC1 PC2 PC3
++ d_cosim model=atmega328p hex="firmware.hex"
+
+R1 PA0 LED_ANODE 1k
+D1 LED_ANODE LED_CATHODE 1N4148
+R2 LED_CATHODE GND 100
+
+.model d_cosim d_cosim_bridge(mcu="atmega328p")
+
+.tran 1u 100m
+.end
+```
+
+### Configuration Parameters
+
+| Parameter | Description | Default |
+| :--- | :--- | :--- |
+| `mcu` | MCU type identifier (e.g., `"atmega328p"`) | *Required* |
+| `hex` | Path to the Intel HEX firmware file | *Required* |
+| `f_cpu` | CPU clock frequency in Hz | `16000000` |
+| `trace` | Enable instruction trace output (0 = disabled, 1 = enabled) | `0` |
+| `shm_name` | Shared memory segment name for co-simulation | `"vioavr_cosim"` |
+
+---
+
+## Analog Bridges
+
+VioAVR provides specialized bridge models for analog signal exchange between SPICE and the AVR's analog peripherals.
+
+### avr_adc_bridge
+
+Routes an analog voltage from the SPICE circuit to the AVR's ADC input channel:
+
+* Converts the SPICE node voltage to a 10-bit (or 12-bit on AVR-Ex) digital value proportional to the ADC reference voltage.
+* Triggers an ADC conversion when the AVR software initiates one, ensuring the converted value reflects the instantaneous SPICE voltage at the exact sampling instant.
+* Supports configurable sample-and-hold timing to model the ADC's sampling capacitor charging time.
+* Includes input impedance modeling to load the SPICE circuit realistically.
+
+```spice
+* ADC bridge: feed sensor voltage to ADC channel 0
+XADC0 SENSOR_OUT AREF GND d_adc_bridge
++ model=avr_adc_bridge channel=0 impedance=10k
+```
+
+### avr_dac_bridge
+
+Routes the AVR's DAC output voltage to a SPICE node:
+
+* Reads the AVR DAC register value and converts it to an equivalent voltage based on the DAC reference.
+* Drives a voltage source in the SPICE circuit that tracks the DAC output.
+* Models the DAC output impedance (typically 1 kΩ) for realistic loading.
+* Updates the output voltage in real-time as the AVR software writes to the DAC data register.
+
+```spice
+* DAC bridge: output AVR DAC to analog filter
+XDAC0 VCC GND DAC_OUT d_dac_bridge
++ model=avr_dac_bridge channel=A impedance=1k
+```
+
+### avr_vcc_bridge
+
+Monitors the AVR's VCC supply voltage for power-aware simulation:
+
+* Reads the VCC node voltage from the SPICE circuit and applies it to the AVR's power supply model.
+* Enables brown-out detection simulation when VCC drops below the BOD threshold.
+* Affects ADC and DAC reference voltages when AVCC is used as reference.
+* Allows simulation of power supply ripple and transient effects on AVR operation.
+
+---
+
+## Shared Memory Bridge Protocol
+
+The shared memory (SHM) bridge is the primary data exchange mechanism between VioAVR and external simulators. It provides low-latency, deterministic communication through memory-mapped regions protected by POSIX semaphores.
+
+### Memory Layout
+
+```c
+struct ShmBridge {
+  uint32_t magic;           // 0x56494F41 ("VIOA")
+  uint32_t version;         // Protocol version (currently 1)
+  uint32_t flags;           // Configuration flags
+  uint32_t cycle_count;     // Global simulation cycle counter
+
+  // Digital I/O
+  uint32_t digital_out;     // Output pin states (bitmask)
+  uint32_t digital_out_en;  // Output enable mask
+  uint32_t digital_in;      // Input pin states (bitmask)
+
+  // Analog I/O (fixed-point Q10 format)
+  int16_t  analog_out[16];  // DAC/comparator outputs
+  int16_t  analog_in[16];   // ADC inputs
+
+  // Control registers
+  uint16_t control;         // Control commands
+  uint16_t status;          // Status flags
+  uint32_t reserved[8];     // Future use
+};
+```
+
+### Synchronization Semaphores
+
+The protocol uses two POSIX named semaphores for lock-step synchronization:
+
+* `vioavr_sem` — VioAVR waits on this semaphore before processing each instruction. The external simulator posts this semaphore after updating the shared memory with new input values.
+* `spice_sem` — The external simulator waits on this semaphore after posting `vioavr_sem`. VioAVR posts `spice_sem` after completing one clock cycle and updating the shared memory with new output values.
+
+This ping-pong protocol ensures that both simulators advance one step at a time with consistent data at each boundary.
+
+### Digital I/O
+
+Digital pin states are exchanged through the `digital_out` and `digital_in` bitmask fields:
+
+* Each bit represents one GPIO pin, indexed by port and bit number.
+* `digital_out` contains the AVR's output pin states. The external simulator reads these to determine the logic levels driving the circuit.
+* `digital_out_en` specifies which bits in `digital_out` are driven by the AVR (output mode). Bits not set in this mask are high-impedance.
+* `digital_in` is written by the external simulator with the logic levels present on the AVR's input pins. The AVR reads these when accessing PIN registers.
+
+### Analog I/O
+
+Analog values are exchanged through 16-bit signed fields in fixed-point Q10 format (10-bit integer, 6-bit fraction):
+
+* `analog_out[0..15]` — DAC outputs and comparator reference voltages. The value range maps to 0.0V–VREF with 10-bit resolution.
+* `analog_in[0..15]` — ADC input voltages. The external simulator writes these, and the AVR's ADC reads them during conversion.
+* Channel index corresponds to the ADC/DAC channel number in the device descriptor.
+
+---
+
+## VioSpiceDashboard Web UI
+
+The VioSpiceDashboard is a browser-based real-time visualization tool for co-simulation:
+
+* **Live Waveform Viewer:** Plot analog signals (ADC/DAC voltages, power rails) and digital signals (GPIO states, UART TX/RX, SPI clock/data) in real-time.
+* **Register Inspector:** View and modify AVR registers, memory, and peripheral state through a categorized panel.
+* **Pin State Matrix:** Visual grid showing all GPIO pin states with color-coded direction (input/output/high-impedance) and logic level.
+* **UART Console:** Terminal emulator for UART0/UART1 output from the AVR firmware, useful for printf-style debugging.
+* **Performance Monitor:** Real-time metrics for simulation speed (cycles/second), co-simulation sync latency, and memory usage.
+* **WebSocket Transport:** The dashboard connects to a WebSocket server running alongside the simulation, receiving data updates at configurable intervals.
+
+---
+
+## HC-05 Bluetooth Emulation
+
+VioAVR can emulate an HC-05 Bluetooth module connected to the AVR's UART, enabling wireless communication simulation:
+
+* **AT Command Emulation:** Responds to standard HC-05 AT commands for configuration: `AT+NAME`, `AT+PSWD`, `AT+UART`, `AT+ROLE`, `AT+CMODE`, etc.
+* **PTY (Pseudo-Terminal) Bridge:** Data mode traffic is routed to a PTY device, allowing any host application to communicate with the AVR through a virtual serial port.
+* **Connection Simulation:** Models connection states: disconnected, inquiry, pairing, and connected. The host can trigger state transitions through the PTY control channel.
+* **Data Pass-Through:** In data mode, bytes written to the UART by the AVR appear on the PTY, and bytes written to the PTY appear on the AVR's UART RX.
+
+### Setup
+
+```bash
+# Create a PTY pair and start the emulation
+vioavr-cli --mcu atmega328p --flash firmware.hex \
+  --uart0-hc05 --pty /tmp/hc05_pty
+
+# Connect to the virtual Bluetooth port from the host
+screen /tmp/hc05_pty 9600
+```
+
+---
+
+## Example: Complete Co-simulation
+
+A full mixed-signal co-simulation of an ATmega328P reading a potentiometer through ADC and controlling an LED via PWM:
+
+```spice
+* Potentiometer + LED PWM co-simulation
+.include "atmega328p.csd"
+
+* Power supply
+VCC VCC 0 DC 5
+GND 0 0
+
+* Potentiometer on ADC0
+R_POT_HIGH VCC POT_MID 10k
+R_POT_LOW POT_MID 0 10k
+V_POT POT_MID ADC_IN DC 2.5
+
+* LED circuit on OC0A (PD6)
+R_LED PD6 LED_A 330
+D_LED LED_A 0 LED_RED
+
+* AVR with PWM firmware
+XAVR0 VCC 0 PA0 PA1 PA2 PA3 PA4 PA5 PA6 PA7
++ PB0 PB1 PB2 PB3 PD2 PD3 PD4 PD5 PD6 PD7
++ PC0 PC1 PC2 PC3
++ d_cosim model=atmega328p hex="pwm_led.hex" f_cpu=16000000
+
+* ADC bridge: potentiometer to ADC channel 0
+XADC0 ADC_IN AREF GND d_adc_bridge
++ model=avr_adc_bridge channel=0
+
+.tran 1u 10m UIC
+.backanno
+.end
+```
+
+In this example, the AVR firmware reads the potentiometer voltage through ADC channel 0 and adjusts the PWM duty cycle on OC0A (PD6) to control LED brightness. The co-simulation engine captures the analog feedback loop between the potentiometer, AVR ADC, PWM output, and LED circuit.

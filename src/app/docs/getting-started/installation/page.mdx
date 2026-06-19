@@ -1,0 +1,139 @@
+# Installation
+
+This page covers dependency installation and build instructions for each project in the Viora EDA ecosystem. All projects share a common CMake-based build system and require a C++20-capable compiler.
+
+## Prerequisites
+
+Before building any Viora project, ensure the following tools are available on your system.
+
+### Common Dependencies
+
+| Dependency | Version | Purpose |
+|---|---|---|
+| CMake | 3.25+ | Build system |
+| GCC / Clang / MSVC | GCC 13+ / Clang 16+ / MSVC 2022 | C++20 compiler |
+| Ninja | Any | Recommended build backend |
+| Qt | 6.5+ | GUI framework (VioraEDA only) |
+| LLVM | 16+ | JIT backend (FluxScript only) |
+| Python | 3.10+ | Scripting, MCP server |
+| Rust | 1.82+ | FerroMNA only |
+
+### Ubuntu / Debian
+
+```bash
+sudo apt update
+sudo apt install build-essential cmake ninja-build git \
+    qt6-base-dev qt6-tools-dev libqt6opengl6-dev \
+    libeigen3-dev llvm-18-dev libclang-18-dev \
+    python3 python3-pip liblapack-dev libblas-dev
+```
+
+### macOS
+
+```bash
+brew install cmake ninja qt llvm eigen python
+```
+
+### Windows
+
+Install the following tools:
+
+- [Visual Studio 2022](https://visualstudio.microsoft.com/) with the "Desktop development with C++" workload
+- [CMake](https://cmake.org/download/)
+- [Qt 6.7+](https://www.qt.io/download) via the Qt Installer
+- [LLVM 18](https://releases.llvm.org/) (for FluxScript)
+
+---
+
+## VioAVR
+
+```bash
+git clone https://github.com/Janadasroor/VioAVR.git
+cd VioAVR
+cmake -B build --preset release
+cmake --build build -j8
+sudo cmake --install build
+```
+
+---
+
+## VioraEDA
+
+VioraEDA requires Qt 6.5+ and Eigen 3.4+. The FluxScript and VioMATRIXC libraries must be installed first if you want the full simulation and scripting capabilities.
+
+```bash
+git clone https://github.com/Janadasroor/VioraEDA.git
+cd VioraEDA
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j8
+sudo cmake --install build
+```
+
+---
+
+## FluxScript
+
+FluxScript requires LLVM 16 or later. Point CMake to the correct LLVM installation using `LLVM_DIR`.
+
+```bash
+git clone https://github.com/Janadasroor/fluxscript.git
+cd fluxscript
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=/usr/lib/llvm-18/cmake
+cmake --build build -j8
+sudo cmake --install build
+```
+
+---
+
+## FerroMNA
+
+FerroMNA is a Rust project. Install Rust via [rustup](https://rustup.rs/) before building.
+
+```bash
+# Install BLAS/LAPACK (required for the sparse solver)
+sudo apt install liblapack-dev libblas-dev   # Ubuntu
+brew install lapack blas                      # macOS
+
+git clone https://github.com/ferromna/ferromna.git
+cd ferromna
+cargo build --release
+# Binary: target/release/ferromna
+```
+
+---
+
+## VioMATRIXC
+
+VioMATRIXC uses an autotools build system inherited from the ngspice upstream. Use the included compile scripts for a standard configuration.
+
+```bash
+git clone https://github.com/janadasroor/viomatrixc.git
+cd viomatrixc
+./compile_linux_shared    # Shared library (libngspice.so)
+# or
+./compile_linux_static    # Static library (libngspice.a)
+```
+
+The library is installed to `/usr/local/lib/` by default.
+
+---
+
+## Verifying the Installation
+
+After installing the tools, run a quick smoke test to confirm everything is working:
+
+```bash
+# Verify VioAVR
+vioavr-cli --version
+
+# Verify FluxScript
+flux --version
+
+# Verify FerroMNA
+ferromna --version
+
+# Run a minimal SPICE simulation
+echo "* test\nV1 in 0 DC 5\nR1 in 0 1k\n.op\n.end" | viomatrixc -
+```
+
+If you encounter any build issues, consult the `INSTALL.md` in each repository or open an issue on GitHub.

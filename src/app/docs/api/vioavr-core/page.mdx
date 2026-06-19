@@ -1,0 +1,277 @@
+# VioAVR Core API
+
+The VioAVR Core API is a C++17 library inside the `vioavr::core` namespace that provides high-performance, cycle-accurate AVR microcontroller simulation. It exposes classes for CPU execution, memory access, peripherals, GDB debugging, and Value Change Dump (VCD) waveform logging.
+
+---
+
+## Headers & Namespace
+
+All VioAVR core header files use the `.hpp` extension.
+
+```cpp
+#include <vioavr/core/avr_cpu.hpp>
+#include <vioavr/core/machine.hpp>
+#include <vioavr/core/device.hpp>
+#include <vioavr/core/devices/atmega328p.hpp> // Predefined descriptor
+
+using namespace vioavr::core;
+```
+
+---
+
+## Core Types
+
+| Type | Definition | Description |
+| :--- | :--- | :--- |
+| `u8` | `uint8_t` | 8-bit unsigned integer. |
+| `u16` | `uint16_t` | 16-bit unsigned integer. |
+| `u32` | `uint32_t` | 32-bit unsigned integer. |
+| `u64` | `uint64_t` | 64-bit unsigned integer. |
+| `PinLevel` | `enum class` | Digital pin state: `Low`, `High`, or `Z` (high-impedance). |
+| `SregFlag` | `enum class` | Status register flags (e.g. `SregFlag::Z`, `SregFlag::C`). |
+| `ResetCause` | `enum class` | Reset triggers: `power_on`, `external`, `watchdog`, etc. |
+
+---
+
+## Device Descriptors
+
+A `DeviceDescriptor` is a layout configuration structure defining the memory boundaries, register mapping, and peripheral arrays for a specific AVR variant. Specific devices are statically declared as inline constexpr objects.
+
+```cpp
+// Predefined ATmega328P descriptor
+const DeviceDescriptor& desc = devices::atmega328p;
+
+std::string_view name = desc.name;              // "ATmega328P"
+u32 flash_words = desc.flash_words;             // 16384 (32 KB)
+u16 sram_bytes = desc.sram_bytes;               // 2048 (2 KB)
+u16 eeprom_bytes = desc.eeprom_bytes;           // 1024 (1 KB)
+```
+
+Common descriptors are declared under `vioavr/core/devices/` (e.g., `attiny824.hpp`, `atmega328p.hpp`, `avr128db64.hpp`).
+
+---
+
+## Key Classes
+
+### MemoryBus
+
+Unified memory interface routing read and write requests to Flash, SRAM, I/O registers, EEPROM, and external memory space.
+
+| Method | Signature | Description |
+| :--- | :--- | :--- |
+| `read_data` | `u8 read_data(u16 address)` | Read a byte from the unified data space (SRAM/IO). |
+| `write_data` | `void write_data(u16 address, u8 value)` | Write a byte to the unified data space (SRAM/IO). |
+| `read_program_word` | `u16 read_program_word(u32 word_address)` | Read a 16-bit word from Flash program memory. |
+| `read_program_byte` | `u8 read_program_byte(u32 byte_address)` | Read a byte from Flash program memory. |
+| `load_image` | `void load_image(const HexImage& image)` | Program the Flash memory with the contents of a HexImage. |
+
+---
+
+### AvrCpu
+
+The core CPU execution engine. Fetches, decodes, and steps instructions.
+
+```cpp
+MemoryBus bus(devices::atmega328p);
+AvrCpu cpu(bus);
+
+cpu.reset(ResetCause::power_on);
+cpu.step(); // Execute single instruction
+
+// Access PC, SP, and Status Register (SREG)
+u32 pc = cpu.program_counter();
+u16 sp = cpu.stack_pointer();
+u8 sreg = cpu.sreg();
+
+// Inspect general-purpose registers
+u8 r16 = cpu.registers()[16];
+cpu.write_register(16, 0xFF);
+
+// Check total executed cycles
+u64 elapsed = cpu.cycles();
+```
+
+| Method | Signature | Description |
+| :--- | :--- | :--- |
+| `reset` | `void reset(ResetCause cause)` | Perform CPU reset sequence. |
+| `step` | `void step()` | Execute next instruction. |
+| `run` | `void run(u64 cycle_budget)` | Run the CPU for a cycle budget. |
+| `halt` | `void halt()` | Pause execution. |
+| `resume` | `void resume()` | Resume execution. |
+| `snapshot` | `CpuSnapshot snapshot()` | Retrieve a copy of the CPU registers and execution state. |
+
+---
+
+### Machine
+
+The top-level controller wiring together the CPU, MemoryBus, and peripherals.
+
+```cpp
+Machine machine(devices::atmega328p);
+
+// Program firmware
+HexImage image = HexImageLoader::load_file("firmware.hex", devices::atmega328p);
+machine.bus().load_image(image);
+
+machine.reset();
+
+// Execute simulation
+machine.step();
+machine.run(1000); // Run 1000 cycles
+
+// Access underlying components
+AvrCpu& cpu = machine.cpu();
+MemoryBus& bus = machine.bus();
+GpioPort* portb = machine.get_port("PORTB");
+```
+
+---
+
+### SyncEngine
+
+`SyncEngine` is an abstract interface class used to implement co-simulation synchronization (e.g., between the digital simulator and a SPICE engine). VioAVR provides a factory function to construct a default fixed-quantum synchronization controller.
+
+```cpp
+// Create fixed quantum sync engine stepping every 1000 cycles
+std::unique_ptr<SyncEngine> sync = create_fixed_quantum_sync_engine(1000);
+```
+
+---
+
+## Hex Loading (`HexImage`)
+
+VioAVR represents Intel HEX files as `HexImage` structures. They are compiled and loaded using `HexImageLoader`.
+
+```cpp
+// Load from file
+HexImage image = HexImageLoader::load_file("firmware.hex", devices::atmega328p);
+
+// Retrieve entry word address and program contents
+u32 entry = image.entry_word;
+const std::vector<u16>& flash = image.flash_words;
+```
+
+---
+
+## GDB Debugging (`GdbStub`)
+
+The GDB stub implements the remote TCP serial protocol to enable source-level debugging of simulated firmware via `avr-gdb`.
+
+```cpp
+Machine machine(devices::atmega328p);
+GdbStub gdb(machine.cpu(), machine.bus());
+
+gdb.start(3333); // Start GDB server listening on port 3333
+
+// Connect using gdb client:
+// avr-gdb -ex "target remote localhost:3333" firmware.elf
+```
+
+---
+
+## Shared-Memory IPC (`BridgeShmClient`/`BridgeShmServer`)
+
+VioAVR utilizes a structured shared-memory block (`VioBridgeShm`) for bidirectional co-simulation between the emulator and external simulators. Processes interface with the bridge using the `BridgeShmClient` or `BridgeShmServer` classes.
+
+```cpp
+// client side (e.g. SPICE process)
+BridgeShmClient client("default");
+if (client.connect()) {
+    client.set_frequency(16000000.0);
+
+    // Write digital input pin value
+    client.set_digital_input(0, true);
+
+    // Write analog input voltage
+    client.set_analog_input(1, 3.3f);
+
+    // Sync step
+    client.step_cycles(1000);
+
+    // Read digital output
+    bool output = client.get_digital_output(5);
+}
+```
+
+---
+
+## Waveform Dumping (`VcdWriter`)
+
+The `VcdWriter` produces standard Value Change Dump (VCD) waveform files for logic analyzers.
+
+```cpp
+VcdWriter vcd("output.vcd");
+vcd.add_signal("PB5", 1, "s0"); // name, width, signal identifier
+vcd.write_header();
+
+// Update signal value at specific timestamps (in nanoseconds)
+vcd.next_timestamp(0);
+vcd.update_signal("s0", 1); // High
+
+vcd.next_timestamp(500);
+vcd.update_signal("s0", 0); // Low
+```
+
+---
+
+## Analog Signal Bank
+
+An `AnalogSignalBank` provides thread-safe atomic channels for reading and writing analog voltages.
+
+```cpp
+AnalogSignalBank& bank = machine.analog_signal_bank();
+
+// Set analog channel voltage (in Volts)
+bank.set_voltage(0, 2.5);
+
+// Read analog channel voltage
+double v = bank.voltage(0);
+```
+
+---
+
+## Complete Example
+
+```cpp
+#include <vioavr/core/machine.hpp>
+#include <vioavr/core/vcd_writer.hpp>
+#include <vioavr/core/devices/atmega328p.hpp>
+#include <iostream>
+
+using namespace vioavr::core;
+
+int main() {
+    // 1. Initialize Machine
+    Machine machine(devices::atmega328p);
+
+    // 2. Load HEX Firmware
+    HexImage image = HexImageLoader::load_file("firmware.hex", devices::atmega328p);
+    machine.bus().load_image(image);
+    machine.reset();
+
+    // 3. Setup Waveform Logger
+    VcdWriter vcd("trace.vcd");
+    vcd.add_signal("PB5", 1, "s0");
+    vcd.write_header();
+
+    // 4. Run Simulation Loop
+    uint64_t current_time_ns = 0;
+    const uint64_t ns_per_cycle = 62; // ~16 MHz clock cycle in ns
+
+    for (uint32_t step = 0; step < 100000; step++) {
+        machine.step();
+        current_time_ns += ns_per_cycle;
+
+        // Query IO pin level
+        GpioPort* portb = machine.get_port("PORTB");
+        if (portb) {
+            bool pb5 = portb->read_pin(5);
+            vcd.next_timestamp(current_time_ns);
+            vcd.update_signal("s0", pb5 ? 1 : 0);
+        }
+    }
+
+    std::cout << "Simulation trace written to trace.vcd" << std::endl;
+    return 0;
+}
+```
