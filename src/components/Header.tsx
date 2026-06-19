@@ -35,7 +35,7 @@ export function Header() {
           )}
         </button>
         <a href="https://github.com/Janadasroor" target="_blank" rel="noopener noreferrer" className="hidden sm:inline text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">GitHub</a>
-        <a href="/docs/getting-started" className="hidden sm:inline text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium text-blue-600 dark:text-blue-400">Get Started</a>
+        <Link href="/docs/getting-started" className="hidden sm:inline text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium text-blue-600 dark:text-blue-400">Get Started</Link>
       </nav>
     </header>
   );

@@ -1,5 +1,6 @@
 import type { MDXComponents } from "mdx/types";
 import { PreWithCopy } from "@/components/PreWithCopy";
+import Link from "next/link";
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
@@ -11,16 +12,23 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ol: ({ children }) => <ol className="list-decimal pl-6 mb-4 space-y-1">{children}</ol>,
     li: ({ children }) => <li className="leading-relaxed">{children}</li>,
     a: ({ href, children }) => {
-      const isExternal = href?.startsWith("http://") || href?.startsWith("https://");
+      const isExternal = href?.startsWith("http://") || href?.startsWith("https://") || href?.startsWith("//");
+      if (isExternal) {
+        return (
+          <a
+            href={href}
+            className="text-blue-600 underline hover:text-blue-800"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {children}
+          </a>
+        );
+      }
       return (
-        <a
-          href={href}
-          className="text-blue-600 underline hover:text-blue-800"
-          target={isExternal ? "_blank" : undefined}
-          rel={isExternal ? "noopener noreferrer" : undefined}
-        >
+        <Link href={href || "#"} className="text-blue-600 underline hover:text-blue-800">
           {children}
-        </a>
+        </Link>
       );
     },
     pre: ({ children }) => (
