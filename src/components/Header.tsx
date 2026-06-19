@@ -34,10 +34,11 @@ export function Header() {
             </svg>
           )}
         </button>
-        <a href="https://github.com/Janadasroor" className="hidden sm:inline text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">GitHub</a>
+        <a href="https://github.com/Janadasroor" target="_blank" rel="noopener noreferrer" className="hidden sm:inline text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">GitHub</a>
         <a href="/docs/getting-started" className="hidden sm:inline text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium text-blue-600 dark:text-blue-400">Get Started</a>
       </nav>
     </header>
   );
 }
+
 

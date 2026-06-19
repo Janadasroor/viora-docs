@@ -10,7 +10,19 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ul: ({ children }) => <ul className="list-disc pl-6 mb-4 space-y-1">{children}</ul>,
     ol: ({ children }) => <ol className="list-decimal pl-6 mb-4 space-y-1">{children}</ol>,
     li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-    a: ({ href, children }) => <a href={href} className="text-blue-600 underline hover:text-blue-800">{children}</a>,
+    a: ({ href, children }) => {
+      const isExternal = href?.startsWith("http://") || href?.startsWith("https://");
+      return (
+        <a
+          href={href}
+          className="text-blue-600 underline hover:text-blue-800"
+          target={isExternal ? "_blank" : undefined}
+          rel={isExternal ? "noopener noreferrer" : undefined}
+        >
+          {children}
+        </a>
+      );
+    },
     pre: ({ children }) => (
       <PreWithCopy>{children}</PreWithCopy>
     ),
