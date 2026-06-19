@@ -1,6 +1,7 @@
 import type { MDXComponents } from "mdx/types";
 import { PreWithCopy } from "@/components/PreWithCopy";
 import Link from "next/link";
+import { MDXImage } from "@/components/MDXImage";
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
@@ -57,7 +58,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
           finalSrc = `${basePath}${src}`;
         }
       }
-      return <img src={finalSrc} alt={alt} className="rounded-lg my-4" />;
+      return <MDXImage src={finalSrc} alt={alt} />;
     },
     ...components,
   };
