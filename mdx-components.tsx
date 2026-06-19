@@ -46,7 +46,19 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     td: ({ children }) => <td className="border border-gray-200 px-3 py-2">{children}</td>,
     blockquote: ({ children }) => <blockquote className="border-l-4 border-blue-500 pl-4 text-gray-500 my-4">{children}</blockquote>,
     hr: () => <hr className="border-gray-200 my-8" />,
-    img: ({ src, alt }) => <img src={src} alt={alt} className="rounded-lg my-4" />,
+    img: ({ src, alt }) => {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+      const isRelative = src?.startsWith("/");
+      const isExternal = src?.startsWith("http://") || src?.startsWith("https://") || src?.startsWith("//");
+      
+      let finalSrc = src;
+      if (isRelative && !isExternal && basePath && src) {
+        if (!src.startsWith(basePath)) {
+          finalSrc = `${basePath}${src}`;
+        }
+      }
+      return <img src={finalSrc} alt={alt} className="rounded-lg my-4" />;
+    },
     ...components,
   };
 }
