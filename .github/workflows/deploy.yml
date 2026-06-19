@@ -42,6 +42,9 @@ jobs:
           # Automatically injects basePath in nextConfig if deploying to sub-path
           static_site_generator: next
 
+      - name: Clean up configure-pages generated config
+        run: rm -f next.config.js
+
       - name: Install dependencies
         run: npm ci
 
